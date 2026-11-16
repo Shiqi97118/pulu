@@ -1,0 +1,22 @@
+{
+  "name": "pulu-desktop-spike",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PULU M01 desktop feasibility spike; placeholder assets only",
+  "type": "module",
+  "main": "src/desktop/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "test": "node --test tests/*.test.js",
+    "check": "npm test && npm run build",
+    "smoke": "npm run build && electron . --smoke"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "electron": "45.3.2",
+    "esbuild": "0.28.2"
+  }
+}
