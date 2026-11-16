@@ -53,7 +53,8 @@ def find_codex():
 INSTRUCTION = (
     "Use the image generation tool to produce exactly one PNG image. "
     "Do not write code, do not run shell commands, do not create other files. "
-    "When it is done, reply with the image path only."
+    "Wait until the tool has finished and the file exists on disk, then reply "
+    "with that absolute path only. Never reply while the image is still generating."
 )
 
 # A drive path or POSIX path ending in .png, as the agent reports it.

@@ -21,6 +21,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--quality", type=int, default=82)
     ap.add_argument("--lossless", action="store_true")
+    ap.add_argument("--generated-from", default="GPT Image via Codex image_gen, alpha-trimmed to 152 px",
+                    help="written into manifest.generatedFrom, so the atlas states its own origin")
     args = ap.parse_args()
 
     frames_dir = Path(args.frames)
@@ -62,7 +64,7 @@ def main():
     manifest = {
         "frameSize": {"w": w, "h": h},
         "anchor": {"x": 0.5, "y": 0.985},
-        "generatedFrom": "placeholder 3D render (visual parity with the GLB)",
+        "generatedFrom": args.generated_from,
         "clips": clips,
     }
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")

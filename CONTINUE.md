@@ -167,5 +167,25 @@
 - 验证：`py_compile` 通过；`pack_atlas.py`、`assemble.py`、`slice_strip.py`、`batch.py` 的 `--help` 全部正常。
 - **未执行**：一次真实的出图也没有跑。那会把提示词与参考图发给外部服务，仍需用户授权。
 
+### 2026-11-16 · 图集换成真帧（7 clip / 57 帧）
+
+用户在家里环境授权出帧，随后改为手动用 ChatGPT 生成剩余 10 帧。
+
+- `gen.py` 取得图路径的方式彻底改了：解析 codex `--json` 流里 `agent_message` 报告的绝对路径，不再按 mtime 扫目录。之前每帧平均要重试一次，改完 `micro_ear_tail` 4 帧零重试。
+- `batch.py` 每次失败即时打印原因（原先要等三次重试耗尽才输出一行）。
+- 图集从 **14 个占位 clip / 645 KiB** 改为 **7 个真帧 clip / 57 帧 / 297.9 KiB**，只保留状态机能驱动的 clip；`assemble.py` 自动丢弃缺帧的 7 个。
+- `tests/sprite-assets.test.js` 的清单改为从 `clip-map.js` 推导，断言 manifest 恰好等于渲染器要的集合——不再写死名字。
+- `pack_atlas.py` 的 `generatedFrom` 改为参数，manifest 现在如实标注来源。
+- `npm run check` 20/20；`--shot` 实拍正常。
+
+**已知质量问题（未解决）**：帧来自两个生成源（Codex 与 ChatGPT），风格不一致。
+- `cursor_watch` 饱和度均值 21，其余 clip 约 40——整条 clip 是另一种画风
+- `pet_react` 亮度极差 17.7、饱和度极差 22.4（第 7、8 帧来自 ChatGPT，前 6 帧来自 Codex）
+- `stretch_exit` 亮度极差 13.2，且姿势序列不是设计稿里的"醒来→伸展→起身"，而是在坐姿与侧卧间反复跳
+- `idle_observe` 亮度极差 10.1，首两帧眼睛是眯着的
+
+结论：能播、能跑、测试通过，但**观感上还不合格**，需要统一风格重出这几个 clip。
+
+
 
 

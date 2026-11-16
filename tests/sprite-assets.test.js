@@ -4,25 +4,21 @@ import {readFile, stat} from 'node:fs/promises';
 import {clipFor, FALLBACK_CLIP} from '../src/renderer/clip-map.js';
 import {Behavior} from '../src/core/behavior.js';
 
-// Guards the shipped 2D asset (ADR-001): the sprite manifest must stay complete,
-// small, and consistent with the clip names the behavior state machine drives.
+// Guards the shipped 2D asset (ADR-001): the atlas must contain exactly the
+// clips the renderer can play, no more and no less.
 //
-// The atlas ships the fourteen clips scripts/art/clips.json defines. The state
-// machine only drives seven of them (idle_observe, walk_in_place, sleep_loop,
-// stretch_exit, cursor_watch, pet_react, micro_ear_tail); the rest stay unwired
-// until behavior.js and app.js map them. micro_groom was replaced by
-// micro_ear_tail and is no longer part of the manifest.
+// scripts/art/clips.json defines fourteen poses as the design set, but the
+// behavior state machine only drives seven states. Shipping the other seven
+// would be dead weight in the bundle and would make the manifest claim actions
+// nobody can trigger, so the atlas carries only what clip-map.js maps.
+// Generate the rest when those states are actually wired up.
 
-const REQUIRED = [
-  'idle_observe', 'walk_in_place', 'sleep_enter', 'sleep_loop', 'stretch_exit',
-  'cursor_watch', 'pet_react', 'micro_ear_tail', 'intro_peek',
-  'groom', 'play_bat', 'play_pounce', 'turn_around', 'yawn',
-];
+const SHIPPED = [...new Set([...Object.values(clipFor), FALLBACK_CLIP])].sort();
 
-test('sprite manifest covers all fourteen clips with sane frame sizes', async () => {
+test('the atlas ships exactly the clips the renderer can play', async () => {
   const manifest = JSON.parse(await readFile('assets/sprites/manifest.json', 'utf8'));
   const names = manifest.clips.map(c => c.name).sort();
-  assert.deepEqual(names, [...REQUIRED].sort());
+  assert.deepEqual(names, SHIPPED, 'manifest must match clip-map.js: no missing clip, no dead weight');
   assert.equal(manifest.frameSize.w, 152);
   assert.ok(manifest.anchor.y > 0.9, 'anchor should sit near the feet');
   for (const clip of manifest.clips) {
@@ -47,19 +43,15 @@ test('sprite atlas stays inside the size budget', async () => {
 
 // The renderer used to carry its state-to-clip object inline, so renaming a
 // clip in the atlas could leave a state pointing at a name that no longer
-// existed, and SpritePlayer.play() then returned false in silence. These two
-// tests pin both halves of that failure.
+// existed, and SpritePlayer.play() then returned false in silence. Manifest
+// coverage is pinned by the test above; this one pins the other half: every
+// state clip-map.js names must be a state the machine actually accepts.
 
-test('every mapped state is one Behavior accepts, and every clip is in the manifest', async () => {
-  const manifest = JSON.parse(await readFile('assets/sprites/manifest.json', 'utf8'));
-  const names = new Set(manifest.clips.map(c => c.name));
+test('every mapped state is one Behavior accepts', () => {
   const behavior = new Behavior(() => 0);
-
-  for (const [state, clip] of Object.entries(clipFor)) {
+  for (const state of Object.keys(clipFor)) {
     assert.equal(behavior.choose(state, 1000), true, `Behavior.choose rejects state "${state}"`);
-    assert.ok(names.has(clip), `state "${state}" maps to missing clip "${clip}"`);
   }
-  assert.ok(names.has(FALLBACK_CLIP), `fallback clip "${FALLBACK_CLIP}" missing from manifest`);
 });
 
 test('the behavior machine never enters a state that has no clip', () => {
