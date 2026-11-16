@@ -70,3 +70,12 @@
 - IoU 0.887 / 0.826 / 0.874（仍差门槛 0.90）。
 
 下一执行单元：骨骼绑定（root/pelvis/spine/neck/head/ear/tail ×3/四肢）+ 10 个 clip，导出带动画 GLB 并在 Three.js 侧验证 mixer。
+
+### 2026-11-16 · 角色重建第五轮（绑定 + 10 clip）
+
+- 22 骨骼，双骨平滑权重；眼固定 head，项圈铃铛固定 neck；根节点缩放 0.19（1 单位 = 1 m）。
+- GLB：1,270,008 字节 / 24,208 三角 / 3 材质 / 1 skin / 22 关节 / 10 动画。
+- 已知问题：转头时项圈不跟随、大角度下眼窝轻微穿插、walk 为坐姿近似、未在 Three.js 内实测播放。
+- 证据：`docs/evidence/2026-11-16-character-rig.md`；帧渲染：`docs/character/renders/anim-strip.png`。
+
+下一执行单元：接回 Electron（新 GLB、76 px 视觉高、窗口 96×112、按 clip 名映射、验证 mixer 交叉淡入与命中），再做 76 px 实机与性能记录。
