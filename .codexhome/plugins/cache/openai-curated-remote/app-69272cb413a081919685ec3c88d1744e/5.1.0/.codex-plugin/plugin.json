@@ -1,0 +1,183 @@
+{
+  "name": "app-69272cb413a081919685ec3c88d1744e",
+  "version": "5.1.0",
+  "description": "Explore millions of stays, unforgettable attractions and find the ideal rental car for your next getaway, directly with Booking.com on ChatGPT.\n\nDiscover hotels, homes, and everything in between.\nGet great cars at great prices.\nBook the right flight by comparing airlines and prices, all in one place.\nFind must-see attractions and experiences.\n\nSomething caught your eye? Tap \"View on Booking.com\" to book your stay, rental car, flight or attraction today.",
+  "author": {
+    "name": "Booking.com B.V."
+  },
+  "interface": {
+    "capabilities": [],
+    "category": "Travel",
+    "defaultPrompt": [
+      "Top Hotels in Miami Beach",
+      "Car rental in Amsterdam Oost",
+      "Round Trip Flight to New York"
+    ],
+    "developerName": "Booking.com B.V.",
+    "displayName": "Booking.com",
+    "longDescription": "Explore millions of stays, unforgettable attractions and find the ideal rental car for your next getaway, directly with Booking.com on ChatGPT.\n\nDiscover hotels, homes, and everything in between.\nGet great cars at great prices.\nBook the right flight by comparing airlines and prices, all in one place.\nFind must-see attractions and experiences.\n\nSomething caught your eye? Tap \"View on Booking.com\" to book your stay, rental car, flight or attraction today.",
+    "privacyPolicyURL": "https://www.booking.com/content/privacy.html",
+    "shortDescription": "Find all best stays and more.",
+    "supportURL": "https://www.booking.com/customer-service.html",
+    "termsOfServiceURL": "https://www.booking.com/content/terms.html",
+    "websiteURL": "https://www.booking.com",
+    "logo": "./assets/booking-com.png",
+    "composerIcon": "./assets/booking-com.png"
+  },
+  "mcpServers": "./.mcp.json",
+  "extensions": {
+    "com.openai": {
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Simple search by city",
+              "prompt": "Search hotels in New York",
+              "tools_triggered": "accommodations_search",
+              "expected_behavior": "A list of up to 10 accommodations result\nEach card must be clickable and open a full screen property details view when clicking on “More about this stay”"
+            },
+            {
+              "description": "Simple search by Landmark",
+              "prompt": "Search hotels near Eiffel Tower ",
+              "tools_triggered": "accommodations_search",
+              "expected_behavior": "A list of up to 10 accommodations result of properties in paris near the eiffel tower\nEach card must be clickable and open a full screen property details view when clicking on “More about this stay”"
+            },
+            {
+              "description": "Search city with facilities",
+              "prompt": "Search hotels in Seattle starting from 1st of December for 4 nights for 4 people with pool and wheelchair access",
+              "tools_triggered": "accommodations_search",
+              "expected_behavior": "A list of up to 10 accommodations result of properties showing the “wheelchair accessible” facility\nEach card must be clickable and open a full screen property details view when clicking on “More about this stay”"
+            },
+            {
+              "description": "Simple cars search by city",
+              "prompt": "Search Car Rental in Barcelona for next weekend",
+              "tools_triggered": "cars_search",
+              "expected_behavior": "A list of up to 10 Car results from different locations within the city\nEach card must be clickable and navigates the user to cars.booking.com full search results with selected car pinned to the top"
+            },
+            {
+              "description": "Search for car by Type and pick up time",
+              "prompt": "Find me a large car I can rent at Schiphol Airport for 4 days when I land at 6pm Wednesday next week.",
+              "tools_triggered": "cars_search",
+              "expected_behavior": "A list of up to 10 Car results filtered to Large category cars\nEach card must be clickable and navigates the user to cars.booking.com full search results with selected car pinned to the top"
+            },
+            {
+              "description": "Simple One Way Flight",
+              "prompt": "Search for flight to Barcelona on the 1st of next month",
+              "tools_triggered": "flights_search",
+              "expected_behavior": "A list of up to 8 flight results \nEach card must be clickable and navigates the user to flights.booking.com full search results with selected flight pinned to the top"
+            },
+            {
+              "description": "Simple Return Flight",
+              "prompt": "Search for flight to Barcelona on the 1st of next month returning on the 3rd",
+              "tools_triggered": "flights_search",
+              "expected_behavior": "A list of up to 8 flight results A list of up to 8 flight results that are scrollable horizontally\nEach card must be clickable and navigates the user to flights.booking.com full search results with selected flight pinned to the top"
+            },
+            {
+              "description": "Direct one way flight",
+              "prompt": "Find a direct one way flight to New York on the 1st of next month",
+              "tools_triggered": "flights_search",
+              "expected_behavior": "A list of up to 8 direct flight results that are scrollable horizontally\nEach card must be clickable and navigates the user to flights.booking.com full search results with selected flight pinned to the top"
+            },
+            {
+              "description": "Search with a specified sort order",
+              "prompt": "Find me the fastest round-trip flights between London and New York from the 31st of next month for 1 week",
+              "tools_triggered": "flights_search",
+              "expected_behavior": "A list of up to 8 direct flight results that are scrollable horizontally and are sorted by duration \nEach card must be clickable and navigates the user to flights.booking.com full search results with selected flight pinned to the top"
+            },
+            {
+              "description": "Search with airline filter",
+              "prompt": "Find me Lufthansa one way flights between London and Munich on the 1st of next month",
+              "tools_triggered": "flights_search",
+              "expected_behavior": "A list of up to 8 Lufthansa flight results that are scrollable horizontally Each card must be clickable and navigates the user to flights.booking.com full search results with selected flight pinned to the top"
+            },
+            {
+              "description": "Simple attractions search by city",
+              "prompt": "Search for things to do in Barcelona",
+              "tools_triggered": "attractions_search",
+              "expected_behavior": "A list of up to 10 attractions results. Each card shows name, rating, price, duration, and a \"View on Booking.com\" button that opens the external booking page."
+            },
+            {
+              "description": "Simple search by landmark",
+              "prompt": "Search for attractions near the Colosseum",
+              "tools_triggered": "attractions_search",
+              "expected_behavior": "A list of up to 10 attractions results of activities in Rome near the Colosseum. Each card shows name, rating, price, duration, and a \"View on Booking.com\" button that opens the external booking page."
+            },
+            {
+              "description": "Search with dates",
+              "prompt": "Find things to do in Amsterdam from June 15 to June 20",
+              "tools_triggered": "attractions_search",
+              "expected_behavior": "A list of up to 10 attractions results with availability for the specified dates. Widget header shows the date range. Each card shows name, rating, price, duration, and a \"View on Booking.com\" button."
+            },
+            {
+              "description": "Search with category filter",
+              "prompt": "Search for things to do in Barcelona for food enthusiast",
+              "tools_triggered": "attractions_search",
+              "expected_behavior": "A list of up to 10 attractions results filtered to the food_drinks category. Each card shows name, rating, price, duration, and a \"View on Booking.com\" button."
+            },
+            {
+              "description": "Search with review score filter",
+              "prompt": "Search for top-rated activities in Tokyo with at least 4.5 stars",
+              "tools_triggered": "attractions_search",
+              "expected_behavior": "A list of up to 10 attractions results filtered by minimum review score of 4.5. Each card shows high ratings and a \"View on Booking.com\" button."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Search unsupported destination",
+              "prompt": "Give me hotels in Pyongyang"
+            },
+            {
+              "description": "Search for long-term rentals",
+              "prompt": "I would like to find a long term rental in Amsterdam, minimum 1 year"
+            },
+            {
+              "description": "Search for not supported products",
+              "prompt": "Can you find a flight from Amsterdam to Paris for the next weekend?"
+            },
+            {
+              "description": "Search unsupported destination",
+              "prompt": "Give me Car rental in Havana"
+            },
+            {
+              "description": "Search for car rental in the past",
+              "prompt": "I would like find a car rental in Manchester in November 2025"
+            },
+            {
+              "description": "Search for not supported products",
+              "prompt": "Can you find a flight from Amsterdam to Paris for the next weekend?"
+            },
+            {
+              "description": "Search unsupported destination",
+              "prompt": "Find things to do in Pyongyang"
+            },
+            {
+              "description": "Search for availability in the past",
+              "prompt": "Show me attractions in Rome for January 2025"
+            },
+            {
+              "description": "Search for not supported products",
+              "prompt": "Can you find a flight from Amsterdam to Paris for the next weekend?"
+            },
+            {
+              "description": "Search flight to unsupported destination",
+              "prompt": "Give me flights to Pyongyang"
+            },
+            {
+              "description": "Search for flight on a date in the past",
+              "prompt": "I would like to find a one way flight to New York on October 1st 2026"
+            },
+            {
+              "description": "Search for sanctioned airline",
+              "prompt": "Can you find the cheapest Aeroflot flight from Moscow to Beijing"
+            }
+          ]
+        },
+        "commerce": true,
+        "commerce_description": "Hotels, homes and more"
+      },
+      "publication": {
+        "release_notes": "Add flights search widget"
+      }
+    }
+  }
+}

@@ -89,3 +89,14 @@
 - 新增 `tests/coat-glb.test.js` 守住资产预算；`npm run check` 16 tests 全通过。
 
 下一执行单元：请用户确认 76 px 观感；同时用 `webContents.capturePage()` 增加 `--shot` 取证通道，替代系统截图权限。
+
+### 2026-11-16 · 2D 序列帧管线打通
+
+- 按 ADR-001 切换：`app.js` 移除 three.js，改 `SpritePlayer`（canvas 2D + alpha 命中）；状态机与 clip 名未改。
+- 占位帧源：`scripts/art/render_frames.py` 渲 210 帧（152²，3/4 机位）→ `pack_atlas.py` 打包 10 条 WebP（**586 KiB**）。
+- 应用内实拍成功（`--shot`），窗口 96×112、角色 76 px。
+- 修 3 个接入期 bug：play/rAF 死锁、图集路径缺 `sprites/` 前缀、codex exec 被 stdin 卡住。
+- `npm run check` 18 tests 通过（新增 sprite 资产守卫）。
+- 未验证：动效播放/循环接缝、命中与拖动实机、76 px 观感、性能。占位帧画质不高于现 3D。
+
+下一执行单元：等 GPT Image 帧源（Codex 额度 15:59 重置，探针在跑）；拿到后按 clip 替换条带，再实机验动效与命中。

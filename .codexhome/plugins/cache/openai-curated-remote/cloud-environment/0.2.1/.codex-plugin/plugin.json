@@ -1,0 +1,27 @@
+{
+  "name": "cloud-environment",
+  "version": "0.2.1",
+  "description": "Use the cloud computer attached to a Codex chat to work with files and repositories, run software, and troubleshoot access to services.",
+  "author": {
+    "name": "OpenAI"
+  },
+  "apps": "./.app.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Cloud Environment",
+    "shortDescription": "Build and test projects on your cloud computer",
+    "developerName": "OpenAI",
+    "category": "Developer Tools",
+    "logo": "./assets/codex.svg",
+    "websiteURL": "https://openai.com/codex/",
+    "supportURL": "https://help.openai.com/",
+    "privacyPolicyURL": "https://openai.com/policies/row-privacy-policy/",
+    "termsOfServiceURL": "https://openai.com/policies/row-terms-of-use/",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "longDescription": "Ask Codex to build a project, run an app, or create a file using the tools and connections in your cloud environment. If something is missing, Codex can check what the environment provides and help you change its setup."
+  },
+  "publicationPolicy": "INTERNAL_ONLY"
+}
