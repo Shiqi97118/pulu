@@ -24,7 +24,7 @@ if(panel){
 }else{
  const behavior=new Behavior();let renderer,mixer,model,current,active,pressed,drag=false,cursor={x:WIDTH/2,y:HEIGHT/2},last=performance.now(),lastFrame=0,stopped=false,blinkTime=0;
  const scene=new T.Scene(),camera=new T.PerspectiveCamera(30,WIDTH/HEIGHT,.01,10);camera.position.set(0,.095,.522);camera.lookAt(0,.095,0);
- scene.add(new T.HemisphereLight(0xffffff,0x858c9c,2.2));const light=new T.DirectionalLight(0xfff4e8,2.7);light.position.set(-.5,.9,.8);scene.add(light);const fill=new T.DirectionalLight(0xe5ebff,.8);fill.position.set(.6,.4,-.6);scene.add(fill);
+ scene.add(new T.HemisphereLight(0xffffff,0x9aa1ad,0.75));const light=new T.DirectionalLight(0xfff4e8,1.35);light.position.set(-.5,.9,.8);scene.add(light);const fill=new T.DirectionalLight(0xe5ebff,0.45);fill.position.set(.6,.4,-.6);scene.add(fill);
  const raycaster=new T.Raycaster(),mouse=new T.Vector2();
  const clipFor={idle:'idle_observe',walk:'walk_in_place',sleep:'sleep_loop',stretch:'stretch_exit',watch:'cursor_watch',pet:'pet_react',micro:'micro_groom'};
  function feedback(){if(behavior.pet())api.interaction('pet');}
@@ -42,8 +42,8 @@ if(panel){
  }
  async function initialize(){
   if(renderer){renderer.dispose();renderer.domElement.remove();}document.querySelector('#error').hidden=true;
-  try{renderer=new T.WebGLRenderer({alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(WIDTH,HEIGHT);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.append(renderer.domElement);
-   model=await new Promise((resolve,reject)=>new GLTFLoader().parse(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'',resolve,reject));scene.add(model.scene);mixer=new T.AnimationMixer(model.scene);current=null;active=null;
+  try{renderer=new T.WebGLRenderer({alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(WIDTH,HEIGHT);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=0.95;document.body.append(renderer.domElement);
+   model=await new Promise((resolve,reject)=>new GLTFLoader().parse(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'',resolve,reject));scene.add(model.scene);mixer=new T.AnimationMixer(model.scene);current=null;active=null;{const seen=new Set();let meshes=0,skinned=0;const mats=[];model.scene.traverse(o=>{if(o.isMesh){meshes++;if(o.isSkinnedMesh)skinned++;for(const m of [].concat(o.material)){if(seen.has(m))continue;seen.add(m);mats.push({name:m.name,map:!!m.map,imgSize:m.map&&m.map.image?[m.map.image.width,m.map.image.height]:null,color:m.color&&m.color.getHexString()});}}});console.info('[PULU] loaded',JSON.stringify({meshes,skinned,clips:model.animations.length,mats}).slice(0,900));}
    const canvas=renderer.domElement;
    canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;pressed={x:e.clientX,y:e.clientY,time:performance.now()};canvas.setPointerCapture(e.pointerId);});
    canvas.addEventListener('pointermove',e=>{if(pressed&&!drag&&Math.hypot(e.clientX-pressed.x,e.clientY-pressed.y)>6){drag=true;api.drag(true);}});
