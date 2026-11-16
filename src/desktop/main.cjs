@@ -4,6 +4,7 @@ const {pathToFileURL} = require('node:url');
 let pet, panel, tray, timer, dragging=false, dragStart=null, pointer=null, quitting=false;
 const state={paused:false,hidden:false,reduced:false,locked:false};
 const smoke=process.argv.includes('--smoke');
+if(smoke) app.setPath('userData',path.join(app.getPath('temp'),'pulu-smoke-user-data'));
 const html=path.resolve(__dirname,'../../dist/index.html');
 const fileURL=pathToFileURL(html).href;
 function trusted(e) {return [pet,panel].some(w=>w&&!w.isDestroyed()&&e.sender===w.webContents)&&e.senderFrame&&e.senderFrame===e.sender.mainFrame&&e.senderFrame.url.split('?')[0]===fileURL;}
