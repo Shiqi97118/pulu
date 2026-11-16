@@ -15,6 +15,7 @@ not separately metered, but the agent turn is.
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -55,6 +56,9 @@ INSTRUCTION = (
     "When it is done, reply with the image path only."
 )
 
+# A drive path or POSIX path ending in .png, as the agent reports it.
+IMAGE_PATH = re.compile(r'(?:[A-Za-z]:[\\/][^"\r\n]*?\.png|/[^"\r\n]*?\.png)', re.IGNORECASE)
+
 
 def run(prompt, ref=None, timeout=600):
     codex_bin = find_codex()
@@ -74,6 +78,11 @@ def run(prompt, ref=None, timeout=600):
         "--ignore-user-config", "--skip-git-repo-check",
         "-C", str(ROOT),
     ]
+    # Frame generation is copy work, not reasoning. PULU_CODEX_TIER=priority
+    # opts into the model's paid fast tier (about 2x speed, more usage).
+    tier = os.environ.get("PULU_CODEX_TIER")
+    if tier:
+        cmd += ["-c", f'service_tier="{tier}"']
     # --image is a multi-value option and would swallow the positional prompt,
     # so use the = form and keep the prompt as the last argument
     if ref:
@@ -84,9 +93,11 @@ def run(prompt, ref=None, timeout=600):
     started = time.time()
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env,
                          stdin=subprocess.DEVNULL)
-    # only images written by THIS run count; stale files from earlier sessions
-    # would otherwise be reported as success
 
+    # The agent finishes by replying with the absolute path it wrote. Read that
+    # instead of guessing from file mtimes: scanning for "the newest png" raced
+    # the tool, so a frame that landed fine was reported as a failure and the
+    # whole (expensive) agent turn was retried.
     images, errors = [], []
     for line in proc.stdout.splitlines():
         line = line.strip()
@@ -96,16 +107,14 @@ def run(prompt, ref=None, timeout=600):
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        text = json.dumps(event)
-        if event.get("type") == "error" or "'error'" in text:
+        item = event.get("item") or {}
+        if item.get("type") == "agent_message":
+            for match in IMAGE_PATH.findall(str(item.get("text") or "")):
+                images.append(Path(match.strip()))
+        if event.get("type") == "error" or "error" in (event.get("item") or {}):
             msg = event.get("message") or event.get("error", {}).get("message")
             if msg:
                 errors.append(msg)
-        for key in ("savedPath", "saved_path"):
-            if key in text:
-                images.append(event)
-        if event.get("type") == "item.completed" and "image_gen" in text:
-            images.append(event)
     return proc, images, errors, started
 
 
@@ -120,22 +129,35 @@ def main():
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    # the tool usually writes into ~/.codex/generated_images/exec-*.png
-    def fresh(paths):
-        return sorted((p for p in paths if p.stat().st_mtime >= started - 1),
-                      key=lambda p: p.stat().st_mtime, reverse=True)
+    # Preferred: the path the agent reported. Only files that exist right now
+    # count, so a stale path from an earlier turn cannot be mistaken for this run.
+    source = next((p for p in reversed(images) if p.is_file()), None)
 
-    candidates = fresh((CODEX_HOME / "generated_images").glob("**/*.png"))
-    if not candidates:
-        candidates = fresh((Path.home() / ".codex/generated_images").glob("**/*.png"))
+    if source is None:
+        # Fallback for a run that printed no path: give the tool a moment to
+        # flush the file, then look for one written since this run started.
+        def fresh(dirs):
+            deadline = time.time() + 15
+            while True:
+                found = sorted(
+                    (p for d in dirs if d.is_dir() for p in d.glob("**/*.png")
+                     if p.stat().st_mtime >= started - 1),
+                    key=lambda p: p.stat().st_mtime, reverse=True)
+                if found or time.time() >= deadline:
+                    return found
+                time.sleep(1)
 
-    if not candidates:
-        print(json.dumps({"ok": False, "errors": errors, "stdout": proc.stdout[-600:],
-                      "stderr": proc.stderr[-600:], "code": proc.returncode}, ensure_ascii=False))
+        candidates = fresh([CODEX_HOME / "generated_images", Path.home() / ".codex/generated_images"])
+        source = candidates[0] if candidates else None
+
+    if source is None:
+        print(json.dumps({"ok": False, "errors": errors, "reported": [str(p) for p in images],
+                      "stdout": proc.stdout[-600:], "stderr": proc.stderr[-600:],
+                      "code": proc.returncode}, ensure_ascii=False))
         sys.exit(1)
 
-    shutil.copy(candidates[0], out)
-    print(json.dumps({"ok": True, "out": str(out), "source": str(candidates[0]),
+    shutil.copy(source, out)
+    print(json.dumps({"ok": True, "out": str(out), "source": str(source),
                       "errors": errors}, ensure_ascii=False))
 
 

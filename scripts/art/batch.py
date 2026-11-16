@@ -34,6 +34,10 @@ def run_gen(prompt, ref, out, retries=2):
             result = {"ok": False, "reason": proc.stdout[-300:] + proc.stderr[-300:]}
         if result.get("ok") and Path(out).exists():
             return True, result
+        # Say why an attempt failed as it happens: a silent retry loop hides
+        # throttling or a broken prompt behind a stalled batch.
+        detail = result.get("errors") or result.get("reason") or result
+        print(f"RETRY {out.name} attempt {attempt + 1}/{retries + 1}: {str(detail)[:300]}", flush=True)
         time.sleep(4)
     return False, result
 
