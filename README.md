@@ -1,3 +1,5 @@
+**开发与审核第一入口：[CORE_PRINCIPLES.md](CORE_PRINCIPLES.md)。所有项目规则引用同一核心正文。**
+
 # PULU｜扑噜
 
 **Milestone 01 · Make PULU Alive**

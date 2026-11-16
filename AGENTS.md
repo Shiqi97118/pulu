@@ -1,5 +1,9 @@
 # PULU workspace rules
 
+Read and follow [CORE_PRINCIPLES.md](CORE_PRINCIPLES.md) first. It is the single core rule body and covers analysis, design, implementation, review, delegation, rework and verification. Platform instructions and explicit current user requests take precedence. Existing proposals alone do not authorize implementation.
+
+Execution unit budget: explicitly record a ceiling within the core default range; include rework in the same total. If metering is unavailable, label estimates and save checkpoints before the ceiling. Review actual files and full diffs against all 12 rules; do not equate self-review with independent acceptance.
+
 Read README.md, CONTINUE.md and docs/milestones/m01/01_DECISIONS_AND_QUESTIONS.md before changes.
 
 - Treat the milestone documents as historical design requirements; use root CONTINUE for actual progress.
