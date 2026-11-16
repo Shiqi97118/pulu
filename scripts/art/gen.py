@@ -46,8 +46,10 @@ def run(prompt, ref=None, timeout=600):
         "--ignore-user-config", "--skip-git-repo-check",
         "-C", str(ROOT),
     ]
+    # --image is a multi-value option and would swallow the positional prompt,
+    # so use the = form and keep the prompt as the last argument
     if ref:
-        cmd += ["-i", str(ref)]
+        cmd += [f"--image={ref}"]
     cmd += [f"{prompt}\n\n{INSTRUCTION}"]
 
     env = dict(os.environ, CODEX_HOME=str(CODEX_HOME))
