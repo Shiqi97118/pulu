@@ -135,17 +135,27 @@
 
 - 公开分支 `work/character-rebuild` 里提交了 **730 个 `.codexhome/` 文件**，含 `auth.json`（Codex 登录令牌）、24 份会话 jsonl、`logs/memories/goals/queue/state` sqlite。污染起点 `da5ce12`；`787bff5` 等提交继续累积。`main` 与另两个分支干净。
 - 已给 `.gitignore` 补 `.codexhome/`。
-- **凭据轮换尚未完成**——用户在 Codex 侧退出并重新登录之前，这条不算解决。删分支不等于撤回：旧提交对象仍可被 SHA 直接访问。
+- **凭据已于 2026-11-16 由用户在 Codex 侧重新登录轮换**，泄露的 `auth.json` 令牌随之失效。删分支不等于撤回：旧提交对象仍可被 SHA 直接访问，因此轮换才是真正的止损，删分支只是减少可见面。
 
 **处置记录（2026-11-16，已执行）**
 
 - `main` 已推送到 `520cc2a`（`a6f78ae..520cc2a` 快进，未重写历史）。
 - 远端分支 `work/character-rebuild` 已删除；`ls-remote` 复查只剩 `main`、`work/m01-v02-study`、`docs/m01-reference-plan-v11`。
 - **实测：删分支没有撤回泄露。** `GET /commits/da5ce12` 仍返回 200；`.codexhome/auth.json` 的 blob `54098a49901d7eea8c174aebb165d6e3ec57c7f7`（4082 字节）**无需认证即可读取**。GitHub 不会因分支删除而立刻回收对象。
-- 结论：唯一有效的止损是**轮换 Codex 凭据**，本轮未完成。可选辅助手段是把仓库临时转私有，可立即切断匿名按 SHA 读取。
+- 结论：删分支不构成止损，唯一有效动作是轮换凭据——用户随后已完成 Codex 重新登录。仓库当前仍是公开状态，旧 blob 按 SHA 匿名可达，但对应令牌已作废。
 
 **Codex 直连（已验证）**
-
 - `codex exec --sandbox read-only` 回显 `PULU_CODEX_OK`。版本 0.169.0-alpha.11.1，model `gpt-6.1-sol`，session `01a1e3f0-cf07-77c0-ba70-14c0433ef9a3`，7,181 tokens。
 - 出帧（把提示词与参考图发给外部服务）**仍未授权**，本轮没有触碰。
+
+### 2026-11-16 · 渲染器 clip 映射收敛 + 失败可见化
+
+- 内联在 `app.js` 里的 `clipFor` 抽成 `src/renderer/clip-map.js`，成为"状态 → clip 名"的唯一出处；`app.js` 改用 `clipForState()`，并在缺映射时落到 `FALLBACK_CLIP`。
+- `SpritePlayer.play()` 遇到未知 clip 不再静默：先 `console.warn('sprite clip not found in manifest: …')` 再返回 `false`。
+- 新增两条守卫测试（`tests/sprite-assets.test.js`）：
+  - 映射的 key 必须被 `Behavior.choose()` 接受，value 必须在 manifest 里，`FALLBACK_CLIP` 也必须存在；
+  - 用可复现的随机序列跑 4000 次 `tick()` 加一次 `pet()`，断言状态机**不会**进入没有 clip 映射的状态，并断言它确实遍历到至少 6 个状态（否则测试是空转）。
+- `npm run check`：**20/20 通过**，构建成功；`--smoke` 仍打印 `PULU_SMOKE_READY`，无 clip 缺失告警。
+- **仍未解决（下一道坎）**：14 个 clip 的图集内容依然完全相同，所以这次改动只是把管线接对了，**观感上没有任何变化**。要让猫真的动起来，必须补帧；补帧要先把提示词与参考图发给外部服务，需要用户明确授权。
+
 

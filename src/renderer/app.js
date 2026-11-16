@@ -1,4 +1,5 @@
 import {SpritePlayer} from './sprite-player.js';
+import {clipFor,FALLBACK_CLIP} from './clip-map.js';
 import spriteManifest from '../../assets/sprites/manifest.json';
 import {Behavior} from '../core/behavior.js';
 import {WIDTH,HEIGHT} from '../core/viewport.cjs';
@@ -24,7 +25,7 @@ if(panel){
  const behavior=new Behavior();let player,current,pressed,drag=false,cursor={x:WIDTH/2,y:HEIGHT/2},stopped=false,sway=0;
  const canvas=document.createElement('canvas');canvas.className='sprite';canvas.width=152;canvas.height=152;
  canvas.setAttribute('role','img');canvas.setAttribute('aria-label','扑噜，一只银灰虎斑白胸小猫');document.body.append(canvas);
- const clipFor={idle:'idle_observe',walk:'walk_in_place',sleep:'sleep_loop',stretch:'stretch_exit',watch:'cursor_watch',pet:'pet_react',micro:'micro_ear_tail'};
+ const clipForState=state=>clipFor[state]||FALLBACK_CLIP;
  function feedback(){if(behavior.pet())api.interaction('pet');}
  function stop(){stopped=true;player?.setPaused(true);}
  function resume(){stopped=false;player?.setPaused(false);}
@@ -34,7 +35,7 @@ if(panel){
   behavior.setReduced(flags.reduced||flags.activity==='low'||matchMedia('(prefers-reduced-motion: reduce)').matches);
   const state=behavior.tick(dt);
   player?.setReduced(behavior.reduced);
-  if(state!==current){current=state;player.play(clipFor[state]);}
+  if(state!==current){current=state;player.play(clipForState(state));}
   if(!behavior.reduced){
    const walk=state==='walk'?Math.sin(behavior.time*3)*4:0;
    if(Math.abs(walk-sway)>0.1){sway=walk;canvas.style.transform=`translateX(calc(-50% + ${walk.toFixed(1)}px))`;}
@@ -55,7 +56,7 @@ if(panel){
    player=new SpritePlayer(canvas,{onTick:tickBehavior});
    await player.load(spriteManifest);
    current=null;sway=0;bindPointer();resume();
-   await player.play(clipFor[behavior.state]||'idle_observe');   // starts the rAF loop
+   await player.play(clipForState(behavior.state));   // starts the rAF loop
    api.ready();
   }catch{fail();}
  }

@@ -58,7 +58,12 @@ export class SpritePlayer {
 
   async play(name, {immediate = false} = {}) {
     const clip = this.manifest?.clips.find(c => c.name === name);
-    if (!clip) return false;
+    // A missing clip used to return false in silence: the previous clip kept
+    // playing and nothing anywhere said why. Surface it instead.
+    if (!clip) {
+      console.warn(`sprite clip not found in manifest: ${name}`);
+      return false;
+    }
     if (this.current?.name === name && !immediate) return true;
     await this._sheet(clip);
     this.current = clip;
