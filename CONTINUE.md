@@ -137,6 +137,13 @@
 - 已给 `.gitignore` 补 `.codexhome/`。
 - **凭据轮换尚未完成**——用户在 Codex 侧退出并重新登录之前，这条不算解决。删分支不等于撤回：旧提交对象仍可被 SHA 直接访问。
 
+**处置记录（2026-11-16，已执行）**
+
+- `main` 已推送到 `520cc2a`（`a6f78ae..520cc2a` 快进，未重写历史）。
+- 远端分支 `work/character-rebuild` 已删除；`ls-remote` 复查只剩 `main`、`work/m01-v02-study`、`docs/m01-reference-plan-v11`。
+- **实测：删分支没有撤回泄露。** `GET /commits/da5ce12` 仍返回 200；`.codexhome/auth.json` 的 blob `54098a49901d7eea8c174aebb165d6e3ec57c7f7`（4082 字节）**无需认证即可读取**。GitHub 不会因分支删除而立刻回收对象。
+- 结论：唯一有效的止损是**轮换 Codex 凭据**，本轮未完成。可选辅助手段是把仓库临时转私有，可立即切断匿名按 SHA 读取。
+
 **Codex 直连（已验证）**
 
 - `codex exec --sandbox read-only` 回显 `PULU_CODEX_OK`。版本 0.169.0-alpha.11.1，model `gpt-6.1-sol`，session `01a1e3f0-cf07-77c0-ba70-14c0433ef9a3`，7,181 tokens。
