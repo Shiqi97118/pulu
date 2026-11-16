@@ -82,7 +82,9 @@
 
 ## 8. 验收门槛
 
-1. 正视/侧视/背视轮廓与 V05 的 IoU ≥ 0.90（自动计算，见 `scripts/character/measure.py`）。
+1. 正视/侧视/背视轮廓与 V05 的 IoU ≥ 0.90（自动计算，见 `scripts/character/measure.py`；当前 0.891/0.837/0.875）。
+   复现：`Blender -b --python scripts/character/build_kitten.py -- --out ../work/out --render`
+   然后 `python3 scripts/character/measure.py ../work/out/blockout-front.png --view front`。
 2. 76 px 下：双眼、白胸、红领结、尾巴可区分；不依赖放大。
 3. 三角 ≤30k、材质 ≤4、draw call ≤8、GLB ≤12 MiB。
 4. 10 个 clip 循环无跳帧，脚不穿地。
@@ -93,7 +95,8 @@
 | 项 | 状态 |
 |---|---|
 | 比例实测 | 完成（本文件第 1 节） |
-| blockout v1（体块 + 五官定位 + 爪 + 尾） | 完成，见 `renders/blockout-*.png` |
+| blockout v1（体块 + 五官定位 + 眼窝 + 爪 + 尾） | 完成，见 `renders/blockout-*.png`，24,080 三角 |
+| 轮廓 IoU | 0.891 / 0.837 / 0.875（门槛 0.90，未过；差 0.009 / 0.063 / 0.025） |
 | 脸部打磨（眼窝、腮毛、口鼻过渡） | **未完成** |
 | 毛色分区 / UV / 烘焙 | 未开始 |
 | 毛壳 | 未开始 |

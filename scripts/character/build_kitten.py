@@ -32,7 +32,7 @@ HW_HAUNCH = 0.350
 HW_NECK = 0.222
 HW_HEAD = 0.284
 EYE_DX = 0.088          # half distance between eye centres
-EYE_R = 0.052
+EYE_R = 0.055
 
 # depth (Y, +Y = facing direction), fraction of H
 Y_NOSE = 0.304
@@ -109,7 +109,7 @@ def superell(u, p):
 
 
 def build_head():
-    HW, RY, YC = 0.302, 0.206, 0.088
+    HW, RY, YC = 0.296, 0.236, 0.076
     ZC, RZ = 0.750, 0.168
     P = 0.88
     bpy.ops.mesh.primitive_uv_sphere_add(segments=56, ring_count=40, radius=1.0)
@@ -129,10 +129,20 @@ def build_head():
         v.co.y -= 0.026 * front ** 2
         dz = (v.co.z - 0.655) / 0.048
         g = math.exp(-dz * dz) * front ** 4
-        v.co.y += 0.020 * g
+        v.co.y += 0.014 * g
         v.co.z -= 0.003 * g
         dz2 = (v.co.z - 0.780) / 0.038
         v.co.y += 0.012 * math.exp(-dz2 * dz2) * front ** 3
+    # eye sockets: a soft rim plus a shallower floor, so the eyes cast a shadow
+    for sx in (-1, 1):
+        ecx = EYE_DX * sx
+        for v in me.vertices:
+            if v.co.y < YC:
+                continue
+            d = math.hypot((v.co.x - ecx) / 1.25, v.co.z - Z_EYE)
+            rim = math.exp(-((d - 0.062) / 0.026) ** 2)
+            floor = math.exp(-(d / 0.058) ** 2)
+            v.co.y -= 0.011 * rim + 0.005 * floor
     me.update()
     bpy.ops.object.shade_smooth()
     return obj
@@ -161,19 +171,19 @@ def sphere(name, loc, radius, scale=(1, 1, 1), segments=28, rings=18):
 
 def build_body():
     profile = [
-        (0.010, 0.246, 0.132, -0.150),
-        (0.055, 0.288, 0.180, -0.212),
-        (0.105, 0.318, 0.216, -0.244),
-        (0.165, 0.338, 0.238, -0.262),
-        (0.225, 0.346, 0.250, -0.270),
-        (0.290, 0.336, 0.256, -0.266),
-        (0.350, 0.316, 0.260, -0.254),
-        (0.410, 0.288, 0.264, -0.236),
-        (0.460, 0.258, 0.268, -0.208),
-        (0.510, 0.230, 0.266, -0.178),
-        (0.555, 0.208, 0.252, -0.150),
-        (0.600, 0.192, 0.230, -0.124),
-        (0.640, 0.176, 0.205, -0.100),
+        (0.010, 0.224, 0.128, -0.156),
+        (0.055, 0.272, 0.176, -0.222),
+        (0.105, 0.306, 0.214, -0.256),
+        (0.165, 0.338, 0.238, -0.278),
+        (0.225, 0.346, 0.250, -0.300),
+        (0.290, 0.334, 0.256, -0.300),
+        (0.350, 0.316, 0.260, -0.276),
+        (0.410, 0.288, 0.264, -0.252),
+        (0.460, 0.248, 0.262, -0.214),
+        (0.510, 0.218, 0.258, -0.186),
+        (0.555, 0.196, 0.244, -0.158),
+        (0.600, 0.182, 0.224, -0.130),
+        (0.640, 0.170, 0.200, -0.104),
     ]
     rings = [ellipse_ring(z, hw, yf, yb) for z, hw, yf, yb in profile]
     obj = loft("Body", rings, cap_bottom=True, cap_top=True)
@@ -182,7 +192,7 @@ def build_body():
     for v in me.vertices:
         front = max(0.0, v.co.y / 0.27)
         g = math.exp(-((v.co.z - 0.470) / 0.070) ** 2) * front ** 2
-        v.co.y += 0.020 * g
+        v.co.y += 0.014 * g
         v.co.x *= 1.0 + 0.018 * g
     me.update()
     return obj
@@ -214,8 +224,8 @@ def build_ear(side):
 
 
 def build_eye(side):
-    return sphere(f"Eye{'LR'[side > 0]}", (EYE_DX * side, 0.303, Z_EYE), EYE_R,
-                  (1.0, 0.62, 1.02))
+    return sphere(f"Eye{'LR'[side > 0]}", (EYE_DX * side, 0.298, Z_EYE), EYE_R,
+                  (1.0, 0.64, 1.00))
 
 
 def build_nose():
@@ -241,7 +251,7 @@ def build_bell():
 def build_leg(side, front=True):
     s = side
     if front:
-        x0, y0 = 0.100 * s, 0.148
+        x0, y0 = 0.100 * s, 0.138
         top, bottom = 0.380, 0.010
         r_top, r_mid, r_bot = 0.080, 0.072, 0.084
     else:
@@ -283,14 +293,15 @@ def build_toes(side, front=True):
 
 def build_tail():
     pts = [
-        (0.180, -0.180, 0.360),
-        (0.244, -0.244, 0.262),
-        (0.286, -0.238, 0.160),
-        (0.298, -0.156, 0.098),
-        (0.286, -0.060, 0.078),
-        (0.252,  0.020, 0.076),
+        (0.150, -0.210, 0.330),
+        (0.226, -0.322, 0.238),
+        (0.274, -0.372, 0.150),
+        (0.300, -0.330, 0.086),
+        (0.316, -0.210, 0.066),
+        (0.310, -0.080, 0.064),
+        (0.288,  0.010, 0.070),
     ]
-    radii = [0.058, 0.057, 0.055, 0.053, 0.050, 0.045]
+    radii = [0.066, 0.066, 0.064, 0.062, 0.060, 0.056, 0.050]
     rings = []
     for i, (cx, cy, cz) in enumerate(pts):
         r = radii[i]
@@ -323,7 +334,7 @@ def make_cameras():
     # camera looks along its local -Z; +Y is the cat's facing direction
     for name, rot, loc in (
         ("Front", (math.pi / 2, 0, math.pi), (0, 3, 0.5)),
-        ("Side", (math.pi / 2, 0, math.pi / 2), (3, 0, 0.5)),
+        ("Side", (math.pi / 2, 0, -math.pi / 2), (-3, 0, 0.5)),
         ("Back", (math.pi / 2, 0, 0), (0, -3, 0.5)),
     ):
         cam_data = bpy.data.cameras.new(name)
