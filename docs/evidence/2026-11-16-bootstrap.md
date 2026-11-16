@@ -15,3 +15,11 @@
 GitHub CI已通过：[Check run](https://github.com/Shiqi97118/pulu/actions/runs/43793011805)，对应提交 a9d385c0ca369684ee260a913c0ff35de5d7a3b1。范围仅Node测试与构建。
 
 下一步：在具备桌面应用运行条件的环境收集Electron启动错误与系统日志，区分环境启动限制、依赖兼容与应用初始化错误，再开始人工桌面验证；不通过关闭安全隔离绕过。
+
+## Application entry retry · 2026-11-16
+
+Observed via native UI: official Electron default application opens successfully through the macOS app entry. Packaging dist, main/preload and package.json in Electron.app/Contents/Resources/app produced a PULU.app that visibly renders the silver/white/red procedural cat. Opened the control panel through the application menu. Clicked pause, reduced motion, hide, show/recover and observed corresponding status updates; clicked quit and the app closed.
+
+This is limited observation, not T01–T08 completion. Input passthrough, focus, dragging, multi-monitor, full-screen, lock/wake, performance, sustained stability and full accessibility are not verified. Status text does not establish all underlying resource behavior.
+
+Direct CLI `electron --version` also exited134 with no application code loaded, and CLI smoke still SIGABRT. Root cause remains undetermined; no security isolation was disabled. The macOS app entry is the current experience path.

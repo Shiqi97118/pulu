@@ -1,6 +1,7 @@
 const {app,BrowserWindow,ipcMain,Menu,Tray,nativeImage,screen,powerMonitor} = require('electron');
 const path = require('node:path');
 const {pathToFileURL} = require('node:url');
+app.setName('PULU');
 let pet, panel, tray, timer, dragging=false, dragStart=null, pointer=null, quitting=false;
 const state={paused:false,hidden:false,reduced:false,locked:false};
 const smoke=process.argv.includes('--smoke');
@@ -30,7 +31,7 @@ app.whenReady().then(()=>{
  pet.once('ready-to-show',()=>pet.showInactive());
  pet.webContents.on('render-process-gone',()=>{hide();controls();});
  pet.on('closed',()=>{if(!quitting)app.quit();});
- const icon=nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==');
+ const icon=nativeImage.createFromPath(path.join(__dirname,'tray.png'));icon.setTemplateImage(true);
  tray=new Tray(icon);if(process.platform==='darwin')tray.setTitle('扑噜');tray.setToolTip('PULU 技术验证');
  tray.setContextMenu(Menu.buildFromTemplate([{label:'控制面板',click:controls},{label:'显示 / 找回小猫',click:show},{label:'隐藏',click:hide},{label:'暂停 / 继续',click:()=>command('pause')},{type:'separator'},{label:'退出 PULU',click:()=>app.quit()}]));
  Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'PULU',submenu:[{label:'控制面板',click:controls},{label:'隐藏',click:hide},{label:'显示',click:show},{label:'退出',role:'quit'}]}]));
