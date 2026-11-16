@@ -1,0 +1,209 @@
+{
+  "comment": "PULU 2D clip set v2. Each frame is one image_gen call. Poses are described relative to the clip's frame 0 so the model only has to change one thing.",
+  "identity": "the exact kitten from the attached reference image — silver-grey tabby with soft silver and ivory tones, white chest, white paws, big round amber eyes with a small white catchlight, tiny pink nose, thin red collar with a small round red bell bearing a white paw print, solid dark-grey fluffy tail. Chibi proportions, soft semi-realistic plush fur, gentle studio light from the upper left. Fully transparent alpha background: no backdrop colour, no floor, no cast shadow, no text, no border. Square 1:1.",
+  "clips": [
+    {
+      "name": "idle_observe", "fps": 6, "loop": true, "frames": 10,
+      "anchor_ref": "idle-00.png",
+      "poses": [
+        "sitting upright, facing the viewer, eyes open, neutral",
+        "eyes closing halfway",
+        "eyes fully closed, calm",
+        "eyes opening again",
+        "head lowered slightly, shoulders settling, breathing out",
+        "head at its lowest, chest relaxed",
+        "head rising, chest expanding, breathing in",
+        "head up, alert but calm",
+        "head tilts very slightly to the left, curious",
+        "back to neutral, facing the viewer"
+      ]
+    },
+    {
+      "name": "walk_in_place", "fps": 12, "loop": true, "frames": 10,
+      "anchor_ref": "idle-00.png",
+      "anchor_pose": "standing on all four legs, body seen from a front three-quarter view, walking toward the viewer, left front paw lifted mid-step",
+      "poses": [
+        "left front paw lifted mid-step",
+        "left front paw touching down, weight shifting",
+        "right front paw lifting",
+        "right front paw forward, body slightly lower",
+        "right front paw touching down",
+        "weight low, both front paws near the ground",
+        "left front paw lifting again",
+        "left front paw forward, body rising",
+        "body at its highest, tail swinging right",
+        "return to the start of the stride"
+      ]
+    },
+    {
+      "name": "groom", "fps": 6, "loop": false, "frames": 10,
+      "anchor_ref": "idle-00.png",
+      "anchor_pose": "sitting upright with the head lowered toward the raised left front paw, about to lick it",
+      "poses": [
+        "head lowered toward the raised left front paw",
+        "tongue out, licking the paw",
+        "tongue in, paw near the muzzle",
+        "licking again",
+        "paw lowered, head turning toward the chest",
+        "grooming the chest fur",
+        "a quick shake of the head",
+        "head rising",
+        "head nearly upright",
+        "back to a normal sitting pose"
+      ]
+    },
+    {
+      "name": "play_bat", "fps": 12, "loop": true, "frames": 10,
+      "anchor_ref": "idle-00.png",
+      "anchor_pose": "sitting with one front paw raised high, batting at an unseen toy to the left, eyes locked on it",
+      "poses": [
+        "left front paw raised high, batting left",
+        "paw swinging across to the right",
+        "paw at the right extreme",
+        "paw coming back, body leaning left",
+        "paw raised again, ears forward",
+        "paw slapping down",
+        "both front paws down, body crouched",
+        "crouched, ready to pounce",
+        "rising back up",
+        "back to the raised paw"
+      ]
+    },
+    {
+      "name": "play_pounce", "fps": 12, "loop": false, "frames": 8,
+      "anchor_ref": "idle-00.png",
+      "anchor_pose": "crouched low on all fours, hind quarters raised, ready to pounce",
+      "poses": [
+        "crouched low, ready to pounce",
+        "hind quarters wiggling",
+        "launching forward, front paws extended",
+        "airborne, body stretched",
+        "landing, front paws first",
+        "front paws down, body still low",
+        "head up, pleased",
+        "back to sitting"
+      ]
+    },
+    {
+      "name": "turn_around", "fps": 8, "loop": true, "frames": 12,
+      "anchor_ref": "idle-00.png",
+      "anchor_pose": "sitting upright, body angled about 45 degrees to the viewer's left",
+      "poses": [
+        "sitting, angled 45 degrees to the viewer's left",
+        "angled to the left, almost in profile",
+        "left profile, looking away",
+        "facing away, back of the head visible",
+        "back turned, tail visible",
+        "facing away at 45 degrees to the right",
+        "right profile",
+        "angled to the viewer's right, 45 degrees",
+        "nearly facing the viewer",
+        "facing the viewer",
+        "slight turn to the left again",
+        "back to the 45 degree left angle"
+      ]
+    },
+    {
+      "name": "sleep_enter", "fps": 8, "loop": false, "frames": 5,
+      "anchor_ref": "idle-00.png",
+      "poses": [
+        "sitting, eyes closing",
+        "head drooping, eyes shut",
+        "head down on the paws, body curling",
+        "curling up, tail wrapping around",
+        "fully curled, asleep"
+      ]
+    },
+    {
+      "name": "sleep_loop", "fps": 4, "loop": true, "frames": 8,
+      "anchor_ref": "idle-00.png",
+      "anchor_pose": "curled up asleep on its side, tail wrapped over the body, eyes closed",
+      "poses": [
+        "curled asleep, breathing gently",
+        "chest rising slightly",
+        "chest at its highest",
+        "chest falling",
+        "chest at its lowest",
+        "a small ear twitch while asleep",
+        "chest rising again",
+        "back to the start"
+      ]
+    },
+    {
+      "name": "stretch_exit", "fps": 10, "loop": false, "frames": 8,
+      "anchor_ref": "idle-00.png",
+      "poses": [
+        "curled up, just waking, eyes opening",
+        "head lifting, still low",
+        "front paws stretching forward, back arched",
+        "full stretch, belly low, tail up",
+        "starting to rise",
+        "sitting up",
+        "a small shake of the head",
+        "normal sitting pose"
+      ]
+    },
+    {
+      "name": "yawn", "fps": 8, "loop": false, "frames": 6,
+      "anchor_ref": "idle-00.png",
+      "poses": [
+        "sitting, mouth closed",
+        "mouth starting to open",
+        "big yawn, eyes squeezed shut",
+        "yawn at its widest",
+        "mouth closing",
+        "back to normal"
+      ]
+    },
+    {
+      "name": "pet_react", "fps": 12, "loop": false, "frames": 8,
+      "anchor_ref": "idle-00.png",
+      "poses": [
+        "sitting, eyes open",
+        "eyes squinting happily",
+        "eyes fully closed, head tilting up into the touch",
+        "head tilted, ears relaxing back",
+        "leaning slightly toward the touch",
+        "eyes opening halfway",
+        "head returning upright",
+        "back to normal"
+      ]
+    },
+    {
+      "name": "cursor_watch", "fps": 6, "loop": true, "frames": 8,
+      "anchor_ref": "idle-00.png",
+      "poses": [
+        "sitting, looking straight at the viewer",
+        "head turned slightly to the viewer's left",
+        "head turned further left, eyes tracking",
+        "head back to centre",
+        "head turned slightly to the viewer's right",
+        "head turned further right",
+        "head back to centre",
+        "a slow blink"
+      ]
+    },
+    {
+      "name": "micro_ear_tail", "fps": 10, "loop": false, "frames": 5,
+      "anchor_ref": "idle-00.png",
+      "poses": [
+        "sitting, neutral",
+        "one ear flicking back",
+        "ear returning, tail tip flicking",
+        "tail swinging to the side",
+        "back to neutral"
+      ]
+    },
+    {
+      "name": "intro_peek", "fps": 10, "loop": false, "frames": 5,
+      "anchor_ref": "idle-00.png",
+      "poses": [
+        "only the top of the head visible, peeking up from the bottom edge",
+        "head and ears visible, eyes wide",
+        "upper body visible, front paws on the edge",
+        "pulling itself up",
+        "sitting normally"
+      ]
+    }
+  ]
+}

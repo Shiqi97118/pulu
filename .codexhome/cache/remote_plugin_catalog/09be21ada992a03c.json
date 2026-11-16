@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "fetched_at": "2026-11-16T08:21:50.725058Z",
+  "fetched_at": "2026-11-16T08:29:05.495777Z",
   "plugins": [
     {
       "id": "plugin_connector_1p_95d39881713c8191931482a62d6edff9",
@@ -1159014,7 +1159014,7 @@
       "disabled_reason": null,
       "eligible_plan_types": null,
       "release": {
-        "version": "1.0.0",
+        "version": "1.1.0",
         "display_name": "MelonHabit",
         "description": "A diary of your skin: a selfie and a line about the day.",
         "bundle_download_url": null,
@@ -1159045,10 +1159045,10 @@
           "default_prompts": [
             "Save this selfie to MelonHabit. No makeup today.",
             "Add this selfie to MelonHabit. I started a new face serum this morning.",
-            "Put my first selfie next to today’s in MelonHabit."
+            "Show my first selfie next to my latest in MelonHabit."
           ],
-          "composer_icon_url": "https://files.openai.com/content?id=file_0000000036c482118fb413b7d13075dd&cdn=1&cp=pi&ma=31795200&ts=0&p=pi&cid=8&sig=f92d61fd0086a448c7c05df31cf07821aa25573f84b7ca661a07407a582e91b3&v=0",
-          "logo_url": "https://files.openai.com/content?id=file_000000008dcc8211bf06634186b1c130&cdn=1&cp=pi&ma=30844800&ts=0&p=pi&cid=8&sig=89873e23e5ed05988f4e22d965c9fc005cf331049633d9d0050c85eef0707886&v=0",
+          "composer_icon_url": "https://files.openai.com/content?id=file_0000000076008211a4fa36a501e67cbf&cdn=1&cp=pi&ma=31449600&ts=0&p=pi&cid=8&sig=32fe5d0dae91013fd57683721cc7cc8059e15d02ed18c144751a6fdcbb36acc2&v=0",
+          "logo_url": "https://files.openai.com/content?id=file_0000000036488211ba4eab8dc5e3431b&cdn=1&cp=pi&ma=30585600&ts=0&p=pi&cid=8&sig=4fa68aa35557f963fbe0a86388348b8ea9a82305ff3691f3b5c601c2fc3985fa&v=0",
           "logo_url_dark": null,
           "screenshot_urls": []
         },

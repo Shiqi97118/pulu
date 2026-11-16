@@ -12,25 +12,39 @@
 | 留边 | 每帧四周 8 px，避免缩放采样溢出 |
 | 排序 | 单图集内按 clip 分行，行内按帧序列 |
 
-## 帧率与帧数预算
+## 帧率与帧数预算（v2，含新增动作）
 
-按"够用即停"配帧，目标是**逐帧可辨认、总字节可控**。
+v2 在 M01 的 10 个 clip 之外补了用户要求的动作：真实走动、玩耍（拍打/扑跃）、舔舐、打哈欠、环绕转身。
+总帧数 113，是 v1（约 211 帧的纯 3D 渲染）按"每帧都要单独生成"重算后的版本：帧数更多，但每帧成本更高，故单 clip 帧数控制在 4–12。
 
-| clip | 时长 | fps | 帧数 |
-|---|---|---|---|
-| idle_observe | 6.0 s | 6 | 36 |
-| walk_in_place | 1.2 s | 12 | 15 |
-| sleep_enter | 2.0 s | 8 | 16 |
-| sleep_loop | 6.0 s | 4 | 24 |
-| stretch_exit | 2.0 s | 10 | 20 |
-| cursor_watch | 4.0 s | 6 | 24（离散朝向，非连续跟随） |
-| pet_react | 1.5 s | 12 | 18 |
-| micro_groom | 3.0 s | 6 | 18 |
-| micro_ear_tail | 2.0 s | 10 | 20 |
-| intro_peek | 2.0 s | 10 | 20 |
-| **合计** | | | **约 211 帧** |
+| clip | 时长 | fps | 帧数 | 说明 |
+|---|---|---|---|---|
+| idle_observe | 1.67 s | 6 | 10 | 呼吸 + 眨眼 + 轻微歪头 |
+| walk_in_place | 0.83 s | 12 | 10 | **四足站立走动**（v1 是坐姿近似） |
+| groom | 1.67 s | 6 | 10 | **舔爪 + 洗脸** |
+| play_bat | 0.83 s | 12 | 10 | **拍打** |
+| play_pounce | 0.67 s | 12 | 8 | **扑跃** |
+| turn_around | 1.5 s | 8 | 12 | **环视/转身**（12 个视角，最考验一致性） |
+| sleep_enter | 0.63 s | 8 | 5 | 入睡 |
+| sleep_loop | 2.0 s | 4 | 8 | 蜷睡呼吸 |
+| stretch_exit | 0.8 s | 10 | 8 | 伸懒腰 |
+| yawn | 0.75 s | 8 | 6 | **打哈欠** |
+| pet_react | 0.67 s | 12 | 8 | 被摸反应 |
+| cursor_watch | 1.33 s | 6 | 8 | 离散朝向（2D 无法连续跟随） |
+| micro_ear_tail | 0.5 s | 10 | 5 | 抖耳甩尾 |
+| intro_peek | 0.5 s | 10 | 5 | 探头 |
+| **合计** | | | **113** | |
 
-体积估算：211 × 152² × 4B ≈ 19.5 MB 原始；WebP q=80 约 **2–4 MB**。按 clip 懒加载，首屏只取 `idle_observe`（约 0.5 MB）。
+体积：AI 帧是照片级细节，压缩率低于 3D 渲染帧。按当前实测约 25–35 KiB/帧估算，总计 **3–4 MB**；
+`manifest.json` 按 clip 分文件，运行时只加载当前 clip，首屏只取 `idle_observe`。
+
+## 生成管线（v2）
+
+1. `scripts/art/clips.json` 定义每个 clip 的 fps、循环、帧数与逐帧姿态描述。
+2. `scripts/art/batch.py` 逐帧调用 `gen.py`：第 0 帧用锚点参考图（已签收的 idle 帧）确立该 clip 的姿势族，
+   其余帧以第 0 帧为参考，只描述"相对它改什么"。已存在的帧自动跳过，可断点续跑。
+3. `scripts/art/assemble.py` 归一化到 152²（裁 alpha 边界、脚底对齐），生成 `summary.json`。
+4. `scripts/art/pack_atlas.py` 打包成每 clip 一条 WebP + manifest。
 
 ## 资产格式
 
