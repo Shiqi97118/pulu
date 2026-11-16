@@ -1,7 +1,7 @@
 const {app,BrowserWindow,ipcMain,Menu,Tray,nativeImage,screen,powerMonitor,dialog,globalShortcut}=require('electron');
 const path=require('node:path');const fs=require('node:fs/promises');const {pathToFileURL}=require('node:url');const {LocalStore}=require('../core/store.cjs');
 app.setName('PULU');let pet,panel,tray,timer,store,dragStart,quitting=false,flushing=false;let lastHit=false,lastPointer='';
-const W=320,H=300;const flags={hidden:false,locked:false,dragging:false,error:null};const smoke=process.argv.includes('--smoke');
+const {WIDTH:W,HEIGHT:H}=require('../core/viewport.cjs');const flags={hidden:false,locked:false,dragging:false,error:null};const smoke=process.argv.includes('--smoke');
 if(smoke)app.setPath('userData',path.join(app.getPath('temp'),'pulu-smoke-user-data'));
 const html=path.resolve(__dirname,'../../dist/index.html'),fileURL=pathToFileURL(html).href;
 const valid=(e)=>[pet,panel].some(w=>w&&!w.isDestroyed()&&e.sender===w.webContents)&&e.senderFrame&&e.senderFrame===e.sender.mainFrame&&e.senderFrame.url.split('?')[0]===fileURL;
