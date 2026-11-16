@@ -79,3 +79,13 @@
 - 证据：`docs/evidence/2026-11-16-character-rig.md`；帧渲染：`docs/character/renders/anim-strip.png`。
 
 下一执行单元：接回 Electron（新 GLB、76 px 视觉高、窗口 96×112、按 clip 名映射、验证 mixer 交叉淡入与命中），再做 76 px 实机与性能记录。
+
+### 2026-11-16 · 桌面壳接入（76 px）
+
+- 窗口 96×112；相机 30°/0.522 m，角色占可视高度 68% ≈ 76 px；资产换为 `assets/pulu-kitten-rigged.glb`。
+- **CLI 启动问题根因找到**：环境变量 `ELECTRON_RUN_AS_NODE=1` 让 Electron 退化成纯 Node 跑 main.cjs，导致 `app` 未定义。`start`/`smoke` 已加 `env -u ELECTRON_RUN_AS_NODE`。SIGABRT 是否同因**未证实**，不要合并结论。
+- 冒烟启动打印 `PULU_SMOKE_READY`（渲染器已解析新 GLB 并完成首帧）。
+- 桌面截图 / 穿透 / 拖动 / 多屏 / 76 px 观感：**全部 NOT_RUN**，本机无屏幕捕获权限，需用户在真实桌面确认。
+- 新增 `tests/coat-glb.test.js` 守住资产预算；`npm run check` 16 tests 全通过。
+
+下一执行单元：请用户确认 76 px 观感；同时用 `webContents.capturePage()` 增加 `--shot` 取证通道，替代系统截图权限。
