@@ -1,0 +1,8 @@
+# Sprite-pipeline dependencies for scripts/art.
+#
+#   python -m pip install -r scripts/art/requirements.txt
+#
+# render_frames.py additionally imports bpy, which only exists inside Blender;
+# it cannot be installed from here.
+Pillow>=10
+numpy>=1.24

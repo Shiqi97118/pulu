@@ -158,4 +158,14 @@
 - `npm run check`：**20/20 通过**，构建成功；`--smoke` 仍打印 `PULU_SMOKE_READY`，无 clip 缺失告警。
 - **仍未解决（下一道坎）**：14 个 clip 的图集内容依然完全相同，所以这次改动只是把管线接对了，**观感上没有任何变化**。要让猫真的动起来，必须补帧；补帧要先把提示词与参考图发给外部服务，需要用户明确授权。
 
+### 2026-11-16 · 出帧管线移植到 Windows + 凭据落点修复
+
+- **泄露根因（已修）**：`gen.py` 原先把 `CODEX_HOME` 设为 `<repo>/.codexhome`，并把 `~/.codex/auth.json` 复制进去。公开仓库里出现登录令牌不是一次误操作，而是这个设计必然的结果。
+- 现在的落点：`<repo 的父目录>/.codexhome`（仓库外），可用 `PULU_CODEX_HOME` 覆盖；`run()` 运行时断言 Codex 家目录不在仓库内，否则直接退出。
+- codex 二进制不再硬编码 macOS 路径：依次尝试 `PULU_CODEX_BIN`、`PATH`、平台默认安装位。本机实测解析到 `C:\Users\tinte\AppData\Local\OpenAI\Codex\bin\c38161ad8494f88c\codex.exe`。
+- 环境补齐：Python 3.12.10（per-user）、Pillow 13.0.0、numpy 2.5.5；新增 `scripts/art/requirements.txt`（`bpy` 只能由 Blender 提供，已在文件里注明）。
+- 验证：`py_compile` 通过；`pack_atlas.py`、`assemble.py`、`slice_strip.py`、`batch.py` 的 `--help` 全部正常。
+- **未执行**：一次真实的出图也没有跑。那会把提示词与参考图发给外部服务，仍需用户授权。
+
+
 
