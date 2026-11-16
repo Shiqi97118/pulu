@@ -108,3 +108,35 @@
 - 图集 498 KiB（10 clips，其中 idle 为 AI 帧，其余仍为占位）。
 - 坑：`--image` 是多值参数，必须写 `--image=<path>`，否则吞掉提示词。
 - 下一步：按 clip 批量出帧（预计 40–60 次调用），先出 walk + pet_react（最能体现"活"的两个），再补其余。
+
+### 2026-11-16 · 环境恢复、基线修复与仓库接回（DSH 主 Agent）
+
+**环境**
+
+- 沙箱在工作区根建立了写授权，但 `pulu/`、`work/` 早于该授权存在、没有继承到，导致 shell 一律 EPERM（`npm ci` 报 `mkdir node_modules` 失败）。用户把会话切到完全权限后恢复。
+- 这台机器没有装 git，但 `C:\Program Files\WorkBuddy\resources\vendor\PortableGit\cmd\git.exe`（2.55.0）可用；连 GitHub 必须加 `-c http.sslBackend=openssl`，否则 schannel 报 `SEC_E_NO_CREDENTIALS`。
+
+**基线（本轮实测，不是引用历史）**
+
+- `npm ci --ignore-scripts`：55 包，0 漏洞。
+- `npm run check` 第一次跑出 **1 个失败**：`tests/sprite-assets.test.js` 仍断言旧的 10-clip 清单。
+- 顺着它查出一个真实缺陷：`src/renderer/app.js` 把 `micro` 状态映射到 `micro_groom`，而 14-clip 重打包后 manifest 里已没有该 clip（被 `micro_ear_tail` 取代）。`SpritePlayer.play()` 对未知 clip **静默 `return false`**，所以 micro 状态一直什么都没播，界面上看不出来。已改映射；守卫测试更新到 14 个 clip。
+- 现在：**18/18 测试通过，构建成功**。
+- 遗留未处理：`assets/sprites/micro_groom.webp` 已成孤儿（manifest 不引用）；`play()` 静默失败没有告警，调用方也没检查返回值。
+
+**仓库**
+
+- 本地这份拷贝没有 `.git`（交接 zip 里也没有）。已 `git init` + 接回 origin，`git reset --mixed origin/main` 对齐后提交 `5555aa8`（`a6f78ae` 的快进）。
+- 远端实际有 4 个分支，`work/character-rebuild`（`247155f`）比 `main` 新得多，含 2D 管线与 Windows 打包。
+
+**安全问题（未闭环，需用户操作）**
+
+- 公开分支 `work/character-rebuild` 里提交了 **730 个 `.codexhome/` 文件**，含 `auth.json`（Codex 登录令牌）、24 份会话 jsonl、`logs/memories/goals/queue/state` sqlite。污染起点 `da5ce12`；`787bff5` 等提交继续累积。`main` 与另两个分支干净。
+- 已给 `.gitignore` 补 `.codexhome/`。
+- **凭据轮换尚未完成**——用户在 Codex 侧退出并重新登录之前，这条不算解决。删分支不等于撤回：旧提交对象仍可被 SHA 直接访问。
+
+**Codex 直连（已验证）**
+
+- `codex exec --sandbox read-only` 回显 `PULU_CODEX_OK`。版本 0.169.0-alpha.11.1，model `gpt-6.1-sol`，session `01a1e3f0-cf07-77c0-ba70-14c0433ef9a3`，7,181 tokens。
+- 出帧（把提示词与参考图发给外部服务）**仍未授权**，本轮没有触碰。
+
