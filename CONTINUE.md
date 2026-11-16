@@ -22,3 +22,21 @@
 ## 用户反馈后的优先级更新
 
 用户认为模型质量低于早期概念图且体积过大。已将功能研究版缩小到200x190 CSS窗口；主进程、渲染、命中使用共享尺寸。正式角色改为Blender建模/UV/绑定、GPT Image辅助贴图；先静态视觉/三视图，再做动作。原概念图需用户提供，Blender MCP尚未连接。见docs/character/BLENDER_HANDOFF.md。其余队列保留，不因路线调整假报完成。
+
+## 2026-11-16 · 角色重建接手（DSH 主 Agent）
+
+已定：美术方向 = 半写实外观 + 烘焙贴图/壳层绒毛；工作面 = `Desktop/PULU/pulu`（origin 一致，未新增提交前状态）；角色优先于桌面壳验收。
+
+已做：量出 Codex 桌面机器人 overlay 为 `mascot 112×121`，据此定 PULU 视觉高 **76 px**（窗口 96×112，可调 56–96）；从签收 V05 三视图量出比例表；产出 blockout v1（23,952 三角 / 4 材质）与三视渲染；轮廓 IoU 0.508 / 0.360 / 0.397（门槛 0.90，未过）。
+
+规格：`docs/character/ASSET_REBUILD_SPEC.md`；证据：`docs/evidence/2026-11-16-character-blockout.md`；脚本：`scripts/character/build_kitten.py`、`scripts/character/measure.py`；渲染：`docs/character/renders/`。
+
+下一执行单元（按顺序）：
+1. 按 IoU 差值修躯干基座宽度与腮部宽度，正/侧/背都过 0.90。
+2. 脸部：眼窝、琥珀虹膜环、口鼻过渡、耳内。
+3. UV + 虎斑图集烘焙（川字背纹、侧腰牛眼、纯色尾、白胸白爪）。
+4. 2 层毛壳（共用图集，reduced 模式可关）。
+5. 骨骼 + 10 clip + GLB 预算校验 + 接回 Electron（76 px 常量）。
+6. 真机 76 px 观感、命中、拖动、隐藏停帧回归，再更新 `docs/TASK_QUEUE.md`。
+
+未做/未验证：视觉签收、UV/贴图/毛壳/绑定/动作、桌面实机、性能、独立审核。不得把这些写成通过。
