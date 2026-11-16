@@ -5,5 +5,7 @@ dist/
 private-references/
 .env
 .env.*
-
+# Codex CLI session home: contains auth.json and session transcripts.
+# Never commit it; it leaked into work/character-rebuild once already.
+.codexhome/
 artifacts/

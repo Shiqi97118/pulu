@@ -1,0 +1,791 @@
+"""PULU kitten · parametric blockout v1.
+
+All dimensions are normalised to total height H = 1.0 (ground = 0, ear tip = 1).
+Numbers come from the approved V05 turnaround measured by
+work/measure.py -> work/turnaround-profile.json.
+
+Run headless:
+    Blender -b --python build_kitten.py -- --out ../out --render
+"""
+
+import json
+import math
+import sys
+from pathlib import Path
+
+import bpy
+from mathutils import Vector
+
+# ---------------------------------------------------------------- proportions
+# z heights (fraction of H)
+Z_GROUND = 0.000
+Z_BELL = 0.468
+Z_COLLAR = 0.530
+Z_CHIN = 0.593
+Z_NOSE = 0.656
+Z_EYE = 0.741
+Z_HEAD_WIDE = 0.700
+Z_CROWN = 0.930
+Z_EAR_TIP = 1.000
+
+# half widths (fraction of H)
+HW_HAUNCH = 0.350
+HW_NECK = 0.222
+HW_HEAD = 0.284
+EYE_DX = 0.088          # half distance between eye centres
+EYE_R = 0.058
+
+# depth (Y, +Y = facing direction), fraction of H
+Y_NOSE = 0.304
+Y_HEAD_BACK = -0.116
+Y_CHEST = 0.287
+Y_BACK = -0.257
+Y_BODY_C = (Y_CHEST + Y_BACK) / 2
+Y_HEAD_C = (Y_NOSE + Y_HEAD_BACK) / 2
+
+SEG = 32
+
+ROOT = Path(__file__).resolve().parents[2]
+LAYOUT = json.loads((ROOT / "scripts/character/atlas_layout.json").read_text())
+REGIONS = LAYOUT["regions"]
+
+
+def ellipse_ring(z, hw, y_front, y_back, seg=SEG):
+    """One horizontal cross-section. y_front/y_back are absolute Y extents."""
+    cy = (y_front + y_back) / 2.0
+    ry = (y_front - y_back) / 2.0
+    pts = []
+    for i in range(seg):
+        a = 2 * math.pi * i / seg
+        pts.append((hw * math.sin(a), cy + ry * math.cos(a), z))
+    return pts
+
+
+def loft(name, rings, cap_bottom=True, cap_top=True):
+    """rings: list of vertex lists, each with the same length. Builds quads."""
+    seg = len(rings[0])
+    verts = [v for ring in rings for v in ring]
+    faces = []
+    for r in range(len(rings) - 1):
+        for i in range(seg):
+            a = r * seg + i
+            b = r * seg + (i + 1) % seg
+            c = (r + 1) * seg + (i + 1) % seg
+            d = (r + 1) * seg + i
+            faces.append((a, b, c, d))
+    if cap_bottom:
+        faces.append(tuple(range(seg - 1, -1, -1)))
+    if cap_top:
+        base = (len(rings) - 1) * seg
+        faces.append(tuple(range(base, base + seg)))
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(verts, [], faces)
+    mesh.validate()
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    return obj
+
+
+def _region(name):
+    x0, y0, x1, y1 = REGIONS[name]
+    return x0, y0, x1, y1
+
+
+def uv_cylindrical(obj, region, axis=(0.0, 0.0), z_range=None):
+    """u = azimuth around a vertical axis (front at u=0.5), v = height."""
+    x0, y0, x1, y1 = _region(region)
+    me = obj.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    uv = me.uv_layers.active.data
+    zs = [v.co.z for v in me.vertices]
+    zmin, zmax = (z_range if z_range else (min(zs), max(zs)))
+    span = max(1e-6, zmax - zmin)
+    cx, cy = axis
+    for poly in me.polygons:
+        us, vs = [], []
+        for li in poly.loop_indices:
+            co = me.vertices[me.loops[li].vertex_index].co
+            a = math.atan2(co.x - cx, co.y - cy)
+            us.append((a + math.pi) / (2 * math.pi))
+            vs.append((co.z - zmin) / span)
+        # a polygon that straddles the u wrap would otherwise stretch across the
+        # whole atlas; clamp the low side to 1.0 so it only stretches locally
+        if max(us) - min(us) > 0.5:
+            us = [u + 1.0 if u < 0.5 else u for u in us]
+            us = [min(u, 1.0) for u in us]
+        for li, u, v in zip(poly.loop_indices, us, vs):
+            uv[li].uv = (x0 + u * (x1 - x0), y0 + v * (y1 - y0))
+
+
+def uv_loft(obj, region, seg, nrings, v_flip=False):
+    """UV straight from the loft topology: vertex i = ring*seg + j.
+
+    u follows the ring (front at u=0.5), v follows the ring index. No projection,
+    no smearing, and the wrap face is clamped so it never spans the atlas.
+    """
+    x0, y0, x1, y1 = _region(region)
+    me = obj.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    uv = me.uv_layers.active.data
+    vert_uv = {}
+    for i in range(len(me.vertices)):
+        ring, j = divmod(i, seg)
+        u = (j / seg + 0.5) % 1.0
+        v = ring / max(1, nrings - 1)
+        if v_flip:
+            v = 1.0 - v
+        vert_uv[i] = (u, v)
+    for poly in me.polygons:
+        idx = [me.loops[li].vertex_index for li in poly.loop_indices]
+        us = [vert_uv[i][0] for i in idx]
+        if max(us) - min(us) > 0.5:
+            # clamp only this face, never the shared vertex table
+            us = [min(1.0, u + 1.0) if u < 0.5 else u for u in us]
+        for li, i, u in zip(poly.loop_indices, idx, us):
+            v = vert_uv[i][1]
+            uv[li].uv = (x0 + u * (x1 - x0), y0 + v * (y1 - y0))
+
+
+def uv_planar(obj, region):
+    """Planar projection on the XZ plane, centred in the region."""
+    x0, y0, x1, y1 = _region(region)
+    me = obj.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    uv = me.uv_layers.active.data
+    xs = [v.co.x for v in me.vertices]
+    zs = [v.co.z for v in me.vertices]
+    xmin, xmax, zmin, zmax = min(xs), max(xs), min(zs), max(zs)
+    sx, sz = max(1e-6, xmax - xmin), max(1e-6, zmax - zmin)
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            co = me.vertices[me.loops[li].vertex_index].co
+            u = (co.x - xmin) / sx
+            v = (co.z - zmin) / sz
+            uv[li].uv = (x0 + u * (x1 - x0), y0 + v * (y1 - y0))
+
+
+def uv_flatten(obj, region):
+    """Cram a sphere's existing UVs into a solid region (nose, pads, toes)."""
+    x0, y0, x1, y1 = _region(region)
+    me = obj.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    for d in me.uv_layers.active.data:
+        d.uv = (cx, cy)          # a single texel: these regions are flat colour
+
+
+def smooth(obj, levels=1):
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+    if levels:
+        mod = obj.modifiers.new("subd", "SUBSURF")
+        mod.levels = levels
+        mod.render_levels = levels
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.ops.object.shade_smooth()
+    obj.select_set(False)
+
+
+def atlas_material(name, atlas, rough=0.62):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = rough
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = atlas
+    tex.interpolation = "Linear"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    m.use_backface_culling = True      # glTF doubleSided=false
+    m.diffuse_color = (0.8, 0.78, 0.75, 1)
+    return m
+
+
+def shell_material(name, atlas, rough=0.75):
+    """Atlas colour + atlas-alpha fringe, alpha-clipped for the fur shells."""
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = rough
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = atlas
+    tex.interpolation = "Linear"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    if hasattr(m, "blend_method"):
+        m.blend_method = "CLIP"
+    if hasattr(m, "shadow_method"):
+        m.shadow_method = "CLIP"
+    if hasattr(m, "surface_render_method"):
+        m.surface_render_method = "DITHERED"
+    m.diffuse_color = (0.8, 0.78, 0.75, 1)
+    return m
+
+
+def build_shell(base, offset, ratio, name):
+    """Offset copy of the body along its normals, decimated to stay in budget."""
+    dup = base.copy()
+    dup.data = base.data.copy()
+    dup.name = name
+    bpy.context.collection.objects.link(dup)
+    bpy.context.view_layer.objects.active = dup
+    disp = dup.modifiers.new("grow", "DISPLACE")
+    disp.strength = offset
+    disp.mid_level = 0.0
+    disp.direction = "NORMAL"
+    bpy.ops.object.modifier_apply(modifier=disp.name)
+    if ratio < 1.0:
+        dec = dup.modifiers.new("cut", "DECIMATE")
+        dec.ratio = ratio
+        bpy.ops.object.modifier_apply(modifier=dec.name)
+    bpy.ops.object.shade_smooth()
+    return dup
+
+
+def mat(name, rgb, rough=0.6):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    bsdf = m.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (*rgb, 1)
+    bsdf.inputs["Roughness"].default_value = rough
+    m.diffuse_color = (*rgb, 1)
+    return m
+
+
+# ------------------------------------------------------------------- shapes
+def superell(u, p):
+    return math.copysign(abs(u) ** p, u)
+
+
+def build_head():
+    HW, RY, YC = 0.296, 0.236, 0.076
+    ZC, RZ = 0.750, 0.168
+    P = 0.88
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=56, ring_count=40, radius=1.0)
+    obj = bpy.context.object
+    obj.name = "Head"
+    me = obj.data
+    for v in me.vertices:
+        ux, uy, uz = v.co
+        z = ZC + uz * RZ
+        cheek = math.exp(-((z - 0.672) / 0.055) ** 2) * (abs(ux) ** 1.3)
+        jaw = 1.0 - 0.11 * math.exp(-((z - 0.598) / 0.032) ** 2)
+        v.co = (superell(ux, P) * HW * (1.0 + 0.048 * cheek) * jaw,
+                YC + superell(uy, P) * RY,
+                z)
+    for v in me.vertices:
+        front = max(0.0, (v.co.y - YC) / RY)
+        v.co.y -= 0.026 * front ** 2
+        dz = (v.co.z - 0.655) / 0.048
+        g = math.exp(-dz * dz) * front ** 4
+        v.co.y += 0.014 * g
+        v.co.z -= 0.003 * g
+        dz2 = (v.co.z - 0.780) / 0.038
+        v.co.y += 0.012 * math.exp(-dz2 * dz2) * front ** 3
+    # eye sockets: a soft rim plus a shallower floor, so the eyes cast a shadow
+    for sx in (-1, 1):
+        ecx = EYE_DX * sx
+        for v in me.vertices:
+            if v.co.y < YC:
+                continue
+            d = math.hypot((v.co.x - ecx) / 1.25, v.co.z - Z_EYE)
+            rim = math.exp(-((d - 0.062) / 0.026) ** 2)
+            floor = math.exp(-(d / 0.058) ** 2)
+            v.co.y -= 0.011 * rim + 0.005 * floor
+    me.update()
+    bpy.ops.object.shade_smooth()
+    return obj
+
+
+def build_muzzle():
+    """Two cheek pads + chin: gives the face a readable snout at small sizes."""
+    parts = []
+    for s in (-1, 1):
+        parts.append(sphere(f"Muzzle{'LR'[s > 0]}", (0.052 * s, 0.268, 0.652),
+                            0.072, (1.10, 0.78, 0.74), 24, 16))
+    parts.append(sphere("Chin", (0, 0.238, 0.610), 0.062, (1.25, 0.80, 0.55), 24, 16))
+    return parts
+
+
+def sphere(name, loc, radius, scale=(1, 1, 1), segments=28, rings=18):
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=segments, ring_count=rings,
+                                         radius=radius, location=loc)
+    o = bpy.context.object
+    o.name = name
+    o.scale = scale
+    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.shade_smooth()
+    return o
+
+
+def build_body():
+    profile = [
+        (0.010, 0.224, 0.128, -0.156),
+        (0.055, 0.272, 0.176, -0.222),
+        (0.105, 0.306, 0.214, -0.256),
+        (0.165, 0.338, 0.238, -0.278),
+        (0.225, 0.346, 0.250, -0.300),
+        (0.290, 0.334, 0.256, -0.300),
+        (0.350, 0.316, 0.260, -0.276),
+        (0.410, 0.288, 0.264, -0.252),
+        (0.460, 0.248, 0.262, -0.214),
+        (0.510, 0.218, 0.258, -0.186),
+        (0.555, 0.196, 0.244, -0.158),
+        (0.600, 0.182, 0.224, -0.130),
+        (0.640, 0.170, 0.200, -0.104),
+    ]
+    rings = [ellipse_ring(z, hw, yf, yb) for z, hw, yf, yb in profile]
+    obj = loft("Body", rings, cap_bottom=True, cap_top=True)
+    uv_loft(obj, "body", SEG, len(profile))
+    smooth(obj, 1)
+    me = obj.data
+    for v in me.vertices:
+        front = max(0.0, v.co.y / 0.27)
+        g = math.exp(-((v.co.z - 0.470) / 0.070) ** 2) * front ** 2
+        v.co.y += 0.014 * g
+        v.co.x *= 1.0 + 0.018 * g
+    me.update()
+    return obj
+
+
+def build_ear(side):
+    s = side
+    base = Vector((0.150 * s, -0.008, 0.800))
+    tip = Vector((0.252 * s, -0.034, 1.000))
+    base_hw, depth = 0.112, 0.044
+    rings = []
+    n = 9
+    for i in range(n):
+        t = i / (n - 1)
+        c = base.lerp(tip, t)
+        hw = base_hw * (1.0 - t ** 1.45) ** 0.8
+        d = depth * (1.0 - t) ** 0.5 + 0.005
+        ring = []
+        for j in range(16):
+            a = 2 * math.pi * j / 16
+            ring.append((c.x + hw * math.sin(a), c.y + d * math.cos(a), c.z))
+        rings.append(ring)
+    obj = loft(f"Ear{'LR'[s > 0]}", rings, cap_bottom=True, cap_top=True)
+    uv_loft(obj, "ears", 16, n)
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+    bpy.ops.object.shade_smooth()
+    obj.select_set(False)
+    return obj
+
+
+def build_eye(side):
+    return sphere(f"Eye{'LR'[side > 0]}", (EYE_DX * side, 0.258, Z_EYE), EYE_R,
+                  (1.0, 0.62, 1.00))
+
+
+def build_nose():
+    return sphere("Nose", (0, 0.318, 0.664), 0.030, (1.0, 0.48, 0.58), 20, 12)
+
+
+def build_collar():
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.240, minor_radius=0.011,
+                                     major_segments=48, minor_segments=10,
+                                     location=(0, 0.058, Z_COLLAR))
+    obj = bpy.context.object
+    obj.name = "Collar"
+    obj.scale = (1.0, 0.955, 1.0)
+    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.shade_smooth()
+    return obj
+
+
+def build_bell():
+    return sphere("Bell", (0, 0.276, 0.489), 0.044, (1.0, 0.95, 1.0), 24, 16)
+
+
+def build_leg(side, front=True):
+    s = side
+    if front:
+        x0, y0 = 0.100 * s, 0.138
+        top, bottom = 0.380, 0.010
+        r_top, r_mid, r_bot = 0.080, 0.072, 0.084
+    else:
+        x0, y0 = 0.205 * s, 0.050
+        top, bottom = 0.270, 0.010
+        r_top, r_mid, r_bot = 0.115, 0.098, 0.088
+    rings = []
+    n = 10
+    for i in range(n):
+        t = i / (n - 1)
+        z = top + (bottom - top) * t
+        r = r_top + (r_mid - r_top) * min(1.0, t * 2.0)
+        if t > 0.6:
+            r = r_mid + (r_bot - r_mid) * (t - 0.6) / 0.4
+        ring = []
+        for j in range(18):
+            a = 2 * math.pi * j / 18
+            fy = 1.0 + 0.30 * max(0.0, math.cos(a)) * (t ** 2)
+            ring.append((x0 + r * math.sin(a), y0 + r * fy * math.cos(a), z))
+        rings.append(ring)
+    name = f"{'Front' if front else 'Hind'}Leg{'LR'[s > 0]}"
+    obj = loft(name, rings, cap_bottom=True, cap_top=True)
+    uv_loft(obj, "legs", 18, n)
+    smooth(obj, 1)
+    return obj
+
+
+def build_toes(side, front=True):
+    s = side
+    if front:
+        x0, y0, z, r = 0.100 * s, 0.205, 0.030, 0.030
+    else:
+        x0, y0, z, r = 0.205 * s, 0.115, 0.028, 0.033
+    out = []
+    for k, dx in enumerate((-0.042, 0.0, 0.042)):
+        out.append(sphere(f"{'F' if front else 'H'}Toe{s}{k}", (x0 + dx, y0, z), r,
+                          (1.0, 1.15, 0.85), 16, 10))
+    return out
+
+
+def build_tail():
+    """Thick tail dropping from the hip and curling forward on the right.
+
+    Rings are built perpendicular to the path; flat XY rings turn the tube into a
+    ribbon once the path runs horizontally.
+    """
+    pts = [
+        (0.150, -0.210, 0.330),
+        (0.226, -0.322, 0.238),
+        (0.274, -0.372, 0.150),
+        (0.300, -0.330, 0.086),
+        (0.316, -0.210, 0.066),
+        (0.310, -0.080, 0.064),
+        (0.292,  0.004, 0.068),
+        (0.276,  0.040, 0.072),
+    ]
+    radii = [0.066, 0.066, 0.064, 0.062, 0.059, 0.052, 0.040, 0.014]
+    rings = []
+    for i, (cx, cy, cz) in enumerate(pts):
+        prev = pts[max(0, i - 1)]
+        nxt = pts[min(len(pts) - 1, i + 1)]
+        t = Vector((nxt[0] - prev[0], nxt[1] - prev[1], nxt[2] - prev[2]))
+        if t.length < 1e-6:
+            t = Vector((0, 1, 0))
+        t.normalize()
+        ref = Vector((0, 0, 1))
+        side = t.cross(ref)
+        if side.length < 1e-4:
+            side = Vector((1, 0, 0))
+        side.normalize()
+        up = side.cross(t).normalized()
+        r = radii[i]
+        ring = []
+        for j in range(16):
+            a = 2 * math.pi * j / 16
+            ring.append((cx + r * math.cos(a) * side.x + r * math.sin(a) * up.x,
+                         cy + r * math.cos(a) * side.y + r * math.sin(a) * up.y,
+                         cz + r * math.cos(a) * side.z + r * math.sin(a) * up.z))
+        rings.append(ring)
+    obj = loft("Tail", rings, cap_bottom=True, cap_top=True)
+    uv_loft(obj, "tail", 16, len(pts))
+    smooth(obj, 1)
+    return obj
+
+
+def build_toes(side, front=True):
+    s = side
+    if front:
+        x0, y0, z, r = 0.100 * s, 0.205, 0.030, 0.030
+    else:
+        x0, y0, z, r = 0.205 * s, 0.115, 0.028, 0.033
+    out = []
+    for k, dx in enumerate((-0.042, 0.0, 0.042)):
+        out.append(sphere(f"{'F' if front else 'H'}Toe{s}{k}", (x0 + dx, y0, z), r,
+                          (1.0, 1.15, 0.85), 16, 10))
+    return out
+
+
+def build_tail():
+    pts = [
+        (0.150, -0.210, 0.330),
+        (0.226, -0.322, 0.238),
+        (0.274, -0.372, 0.150),
+        (0.300, -0.330, 0.086),
+        (0.316, -0.210, 0.066),
+        (0.310, -0.080, 0.064),
+        (0.292,  0.004, 0.068),
+        (0.276,  0.040, 0.072),
+    ]
+    radii = [0.066, 0.066, 0.064, 0.062, 0.059, 0.052, 0.040, 0.014]
+    rings = []
+    for i, (cx, cy, cz) in enumerate(pts):
+        r = radii[i]
+        ring = []
+        for j in range(16):
+            a = 2 * math.pi * j / 16
+            # flat cross-section: a tilted ring along a curved path shears the
+            # tube and shows up as a sawtooth silhouette
+            ring.append((cx + r * math.cos(a), cy + r * math.sin(a), cz))
+        rings.append(ring)
+    obj = loft("Tail", rings, cap_bottom=True, cap_top=True)
+    uv_loft(obj, "tail", 16, len(pts))
+    smooth(obj, 1)
+    return obj
+
+
+# ------------------------------------------------------------------- scene
+def clear():
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+
+
+def studio():
+    world = bpy.data.worlds.new("W")
+    bpy.context.scene.world = world
+    world.use_nodes = True
+    world.node_tree.nodes["Background"].inputs[0].default_value = (0.95, 0.95, 0.95, 1)
+    world.node_tree.nodes["Background"].inputs[1].default_value = 1.0
+
+
+def setup_studio_lights():
+    """Three-point area rig for look-dev renders (not exported)."""
+    specs = [("key", (1.4, 2.2, 2.0), 150, 3.0),
+             ("fill", (-2.2, 1.6, 1.0), 55, 4.0),
+             ("rim", (0.2, -2.4, 1.6), 70, 3.0)]
+    for name, loc, energy, size in specs:
+        data = bpy.data.lights.new(name, "AREA")
+        data.energy = energy
+        data.size = size
+        obj = bpy.data.objects.new(name, data)
+        obj.location = loc
+        obj.rotation_euler = (math.atan2(math.hypot(loc[0], loc[1]), loc[2]), 0,
+                              math.atan2(loc[1], loc[0]) + math.pi / 2)
+        bpy.context.collection.objects.link(obj)
+
+
+def make_cameras():
+    cams = {}
+    # camera looks along its local -Z; +Y is the cat's facing direction
+    for name, rot, loc in (
+        ("Front", (math.pi / 2, 0, math.pi), (0, 3, 0.5)),
+        ("Side", (math.pi / 2, 0, -math.pi / 2), (-3, 0, 0.5)),
+        ("Back", (math.pi / 2, 0, 0), (0, -3, 0.5)),
+    ):
+        cam_data = bpy.data.cameras.new(name)
+        cam_data.type = "ORTHO"
+        cam_data.ortho_scale = 1.25
+        cam = bpy.data.objects.new(name, cam_data)
+        cam.location = loc
+        cam.rotation_euler = rot
+        bpy.context.collection.objects.link(cam)
+        cams[name] = cam
+    return cams
+
+
+def add_fluff(base, stride=5, length=0.011):
+    """Sprinkle short fur spikes over the coat mesh (same material, same UVs).
+
+    At 76 px this reads as a soft, irregular silhouette; two alpha shells did not,
+    because a hard alpha cut-off over a big offset just speckles the body.
+    """
+    me = base.data
+    me.calc_loop_triangles()
+    # vertex -> a representative UV
+    vuv = {}
+    uvl = me.uv_layers.active
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            vi = me.loops[li].vertex_index
+            if vi not in vuv:
+                vuv[vi] = tuple(uvl.data[li].uv)
+    verts, faces, uvs = [], [], []
+    rng = __import__("random")
+    rng.seed(20261116)
+    for vi, v in enumerate(me.vertices):
+        if vi % stride:
+            continue
+        if vi not in vuv:
+            continue
+        co = v.co
+        n = v.normal
+        # skip upward-facing head/back top? no: fluff everywhere reads better
+        jitter = (rng.uniform(-0.35, 0.35), rng.uniform(-0.35, 0.35))
+        base_i = len(verts)
+        side = 0.0035
+        verts.append((co.x - n.y * side, co.y + n.x * side, co.z))
+        verts.append((co.x + n.y * side, co.y - n.x * side, co.z))
+        ln = length * rng.uniform(0.55, 1.35)
+        verts.append((co.x + n.x * ln + jitter[0] * ln,
+                      co.y + n.y * ln + jitter[1] * ln,
+                      co.z + n.z * ln))
+        faces.append((base_i, base_i + 1, base_i + 2))
+        uv = vuv[vi]
+        uvs += [uv, uv, uv]
+    mesh = bpy.data.meshes.new("Fluff")
+    mesh.from_pydata(verts, [], faces)
+    mesh.validate()
+    fl = bpy.data.objects.new("Fluff", mesh)
+    bpy.context.collection.objects.link(fl)
+    layer = mesh.uv_layers.new(name="UVMap")
+    for i, uv in enumerate(uvs):
+        layer.data[i].uv = uv
+    fl.data.materials.append(base.data.materials[0])
+    bpy.ops.object.select_all(action="DESELECT")
+    fl.select_set(True)
+    base.select_set(True)
+    bpy.context.view_layer.objects.active = base
+    bpy.ops.object.join()
+    bpy.ops.object.shade_smooth()
+    return base
+
+
+def merge_by_material(parts):
+    """One mesh per material so the GLB stays inside the draw-call budget."""
+    groups = {}
+    for obj, m in parts:
+        groups.setdefault(m.name, []).append(obj)
+    merged = []
+    for name, objs in groups.items():
+        bpy.ops.object.select_all(action="DESELECT")
+        for o in objs:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = objs[0]
+        if len(objs) > 1:
+            bpy.ops.object.join()
+        joined = bpy.context.view_layer.objects.active
+        joined.name = f"PULU_{name}"
+        merged.append((joined, objs[0].data.materials[0] if objs[0].data.materials else None))
+    parts[:] = merged
+    return merged
+
+
+def main():
+    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else Path("out")
+    atlas_path = argv[argv.index("--atlas") + 1] if "--atlas" in argv else str(ROOT / "assets/coat-atlas.png")
+    out.mkdir(parents=True, exist_ok=True)
+
+    clear()
+    studio()
+
+    atlas_img = None
+    if Path(atlas_path).exists():
+        atlas_img = bpy.data.images.load(str(Path(atlas_path).resolve()), check_existing=False)
+        atlas_img.colorspace_settings.name = "sRGB"
+        atlas_img.pack()
+        fur = atlas_material("fur", atlas_img, 0.66)
+        eye_mat = atlas_material("eye", atlas_img, 0.22)
+        nose_mat = atlas_material("nose", atlas_img, 0.5)
+    else:
+        fur = mat("clay", (0.62, 0.61, 0.60), 0.55)
+        eye_mat = mat("eye", (0.05, 0.045, 0.04), 0.25)
+        nose_mat = mat("nose", (0.72, 0.45, 0.42), 0.5)
+    red = mat("red", (0.55, 0.05, 0.03), 0.35)
+    brass = mat("brass", (0.55, 0.42, 0.18), 0.35)
+    for m in (red, brass):
+        m.use_backface_culling = True
+
+    parts = []
+
+    head = build_head()
+    uv_cylindrical(head, "head", axis=(0.0, Y_HEAD_C), z_range=(Z_CHIN - 0.02, 0.915))
+    parts.append((head, fur))
+
+    body = build_body()
+    parts.append((body, fur))
+
+    for pad in build_muzzle():
+        uv_flatten(pad, "white")
+        parts.append((pad, fur))
+
+    for side in (-1, 1):
+        ear = build_ear(side)
+        parts.append((ear, fur))
+
+        eye = build_eye(side)
+        uv_planar(eye, "eye")
+        parts.append((eye, eye_mat))
+
+        for front in (True, False):
+            leg = build_leg(side, front)
+            parts.append((leg, fur))
+            for toe in build_toes(side, front):
+                uv_flatten(toe, "white")
+                parts.append((toe, fur))
+
+    tail = build_tail()
+    parts.append((tail, fur))
+
+    nose = build_nose()
+    uv_flatten(nose, "nose")
+    parts.append((nose, fur))     # same atlas: keeps the material count at 4
+
+    parts.append((build_collar(), red))
+    parts.append((build_bell(), red))
+
+    for obj, m in parts:
+        obj.data.materials.append(m)
+
+    merge_by_material(parts)
+
+    if atlas_img and "--fluff" in argv:
+        fur_obj = next((o for o, m in parts if o.name == "PULU_fur"), None)
+        if fur_obj:
+            add_fluff(fur_obj, stride=9, length=0.007)
+
+    if "--glb" in argv:
+        for obj, _ in parts:
+            obj.select_set(True)
+        bpy.ops.export_scene.gltf(
+            filepath=str(out / "pulu-kitten.glb"),
+            export_format="GLB",
+            use_selection=True,
+            export_apply=True,
+            export_yup=True,
+        )
+        for obj, _ in parts:
+            obj.select_set(False)
+
+    cams = make_cameras()
+    scene = bpy.context.scene
+    if atlas_img:
+        world = bpy.data.worlds.new("PULU world")
+        scene.world = world
+        world.use_nodes = True
+        bg = world.node_tree.nodes.get("Background")
+        if bg:
+            bg.inputs[0].default_value = (1.0, 0.98, 0.96, 1)
+            bg.inputs[1].default_value = 0.30
+        setup_studio_lights()
+        scene.render.engine = "BLENDER_EEVEE"
+        scene.eevee.taa_render_samples = 32
+        scene.view_settings.view_transform = "Standard"
+        scene.view_settings.look = "None"
+        scene.view_settings.exposure = 0.0
+        scene.view_settings.gamma = 1.0
+    else:
+        scene.render.engine = "BLENDER_WORKBENCH"
+    scene.render.film_transparent = True
+    scene.render.resolution_x = 600
+    scene.render.resolution_y = 600
+    scene.render.resolution_percentage = 100
+    shading = scene.display.shading
+    shading.light = "STUDIO"
+    shading.color_type = "TEXTURE"
+    shading.show_cavity = True
+    shading.cavity_type = "BOTH"
+    try:
+        shading.show_shadows = False
+    except AttributeError:
+        pass
+
+    if "--render" in argv:
+        for name, cam in cams.items():
+            scene.camera = cam
+            scene.render.filepath = str(out / f"blockout-{name.lower()}.png")
+            bpy.ops.render.render(write_still=True)
+
+    bpy.ops.wm.save_as_mainfile(filepath=str(out / "kitten-blockout-v1.blend"))
+    print("PULU_BLOCKOUT_DONE", out)
+
+main()

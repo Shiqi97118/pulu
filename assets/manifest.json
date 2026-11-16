@@ -1,0 +1,30 @@
+{
+  "status": "DESIGN_STUDY_NOT_APPROVED",
+  "asset": "pulu-kitten-rigged.glb",
+  "bytes": 1270008,
+  "triangles": 24208,
+  "meshes": 3,
+  "materials": 3,
+  "images": 1,
+  "skin": {"count": 1, "joints": 22},
+  "rootScale": 0.19,
+  "animations": [
+    {"name": "idle_observe", "duration": 6.0},
+    {"name": "walk_in_place", "duration": 1.23},
+    {"name": "sleep_enter", "duration": 2.0},
+    {"name": "sleep_loop", "duration": 6.03},
+    {"name": "stretch_exit", "duration": 2.0},
+    {"name": "cursor_watch", "duration": 4.0},
+    {"name": "pet_react", "duration": 1.5},
+    {"name": "micro_groom", "duration": 3.0},
+    {"name": "micro_ear_tail", "duration": 2.0},
+    {"name": "intro_peek", "duration": 2.0}
+  ],
+  "limitations": [
+    "visual approval pending",
+    "collar does not follow head turns",
+    "walk_in_place is a seated approximation, not a gait",
+    "desktop 76 px appearance not yet reviewed by the user"
+  ],
+  "supersedes": "pulu-study.glb (procedural study, 68 meshes / 11 materials, kept for reference only)"
+}

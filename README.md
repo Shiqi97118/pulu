@@ -1,53 +1,29 @@
-**开发与审核第一入口：[CORE_PRINCIPLES.md](CORE_PRINCIPLES.md)。所有项目规则引用同一核心正文。**
-
 # PULU｜扑噜
 
-**Milestone 01 · Make PULU Alive**
+Milestone 01 · Make PULU Alive
 
-跨设备 AI 虚拟伙伴项目，先验证自然、轻量且不打扰工作的桌面陪伴。视觉基线为银灰虎斑、白胸白爪、红铃铛小猫。
+以真实银灰虎斑、白胸白爪、红铃铛小猫为原型的跨设备虚拟伙伴项目，先验证桌面自然陪伴。
 
-## 当前内容
+**开发与审核第一入口：[CORE_PRINCIPLES.md](CORE_PRINCIPLES.md)。** 需求、设计、编程、修复、测试、派工及返工均遵从这12条；AGENTS与PR模板引用同一正文。关键项未验证时不宣称最终验收通过。
 
-- [M01 完整设计任务书](docs/milestones/m01/README.md)：角色、3D/动作、PRD、架构、25项任务、测试验收、隐私合规与商业验证。
-- Electron + Three.js **桌面技术探针**：程序几何占位角色、本地自主动作、抚摸/拖动、暂停、隐藏/找回、退出与独立控制面板。
-- [最新进展与下一步](CONTINUE.md)、[验证记录](docs/evidence/2026-11-16-bootstrap.md)。
+- [实际任务队列](docs/TASK_QUEUE.md) / [继续工作](CONTINUE.md)
+- [M01完整设计包](docs/milestones/m01/README.md)
+- [已获用户公开授权的照片](docs/milestones/m01/references/REFERENCE_INDEX.md)
 
-这是研发中的原型。几何占位猫不是正式 V0.2，也不是经过签收的 3D 资产。未接云端 AI、语义长期记忆、账号或跨设备同步；设置暂不持久保存。Electron 仍处于宿主可行性验证阶段，HyperFrames 仍为内容生产候选。
-
-## 本地运行
-
-需要 Node.js 24 LTS 与 npm；首次安装需要联网，打包后的页面资源不访问网络。
+当前代码是研发预览，不是正式产品。Three.js GLB角色研究版与10个动作已导出/重新导入；Electron应用入口可体验。角色待视觉签收、材质与绘制调用预算未达标；没有云端AI、语义长期记忆或跨端同步。设置和有限偏好/互动摘要留在本地，可查看、删除或主动导出。
 
 ```sh
 npm ci
-npm test
-npm run build
-npm start
+npm run check
 ```
 
-`npm run smoke` 启动桌面窗口，渲染器成功建立场景后输出标记并自动退出；这不替代人工桌面验收。依赖版本以 package-lock.json 为准。
-
-右键占位角色或使用菜单栏/托盘打开控制面板。控制面板可用键盘操作摸摸、暂停、减少动态、隐藏、找回和退出。没有强制全局快捷键或自动启动。鼠标穿透采用主进程即时坐标与 Three.js raycast 命中切换，尚待底层应用、多屏与全屏真实体验验证。
-
-## 开发边界
-
-不读取截图、剪贴板、按键、麦克风或桌面文本；不上传遥测。指针坐标仅在内存用于即时命中和拖动，不保存轨迹。拖动/指针轮询的功耗、拒绝权限的表现仍需验证。
-
-三张私人参考照片及含照片 ZIP 不在公开仓库。设计文档保留文字特征，内部照片由项目负责人提供。设计任务包 1.0.0 是历史基线，根目录 CONTINUE 记录后续实现状态；不得将文档中的验收要求写成已通过的结果。
-
-当前未选开源许可证，不应仅因仓库公开就推定角色、照片或代码可任意商用。所有发布与授权以项目负责人后续决定为准。
-
-## 2026-11-16 体验更新
-
-上文“照片不上传”已由用户本轮授权更新：三张指定猫咪照片现已公开上传，见[参考索引](docs/milestones/m01/references/REFERENCE_INDEX.md)。其余私人材料仍不上传。
-
-通过macOS应用入口已成功打开占位小猫与控制面板；暂停、减少动态、隐藏/找回的状态反馈以及退出已实际检查。命令行启动仍SIGABRT，原因未定；不代表已通过穿透、焦点、多屏或性能验收。
-
-本机生成预览包（macOS Apple Silicon，先安装依赖与Electron运行组件）：
+macOS Apple Silicon 本地预览：
 
 ```sh
-npm run build
 node scripts/package-preview.mjs
+node scripts/verify-preview.mjs artifacts/PULU.app
 ```
 
-然后在Finder打开 artifacts/PULU.app。该包未作分发签名/公证，非正式安装版。
+在Finder打开生成的app。CLI `npm start` 目前仍可能SIGABRT；应用入口已运行不代表CLI问题解决。未签名/公证，非正式安装包。右键小猫或菜单栏/托盘打开控制面板；退出/隐藏入口独立于角色。
+
+默认无云AI、遥测、截图/桌面文本读取、声音或自动启动。全屏避让暂用手动隐藏/演示模式。公开仓库不意味着角色、照片或代码获任意第三方商用许可；正式许可待项目负责人决定。

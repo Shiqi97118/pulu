@@ -1,0 +1,106 @@
+{
+  "size": 1024,
+  "comment": "UV regions in normalised atlas space, v measured from the bottom. Shared by paint_coat.py and build_kitten.py so the painter and the mesh never disagree.",
+  "regions": {
+    "body": [
+      0.0,
+      0.0,
+      1.0,
+      0.26
+    ],
+    "head": [
+      0.0,
+      0.26,
+      0.62,
+      0.62
+    ],
+    "legs": [
+      0.62,
+      0.26,
+      0.8,
+      0.46
+    ],
+    "tail": [
+      0.8,
+      0.26,
+      1.0,
+      0.46
+    ],
+    "ears": [
+      0.62,
+      0.46,
+      1.0,
+      0.62
+    ],
+    "white": [
+      0.0,
+      0.62,
+      0.2,
+      0.74
+    ],
+    "eye": [
+      0.2,
+      0.62,
+      0.46,
+      0.78
+    ],
+    "nose": [
+      0.46,
+      0.62,
+      0.56,
+      0.69
+    ]
+  },
+  "palette": {
+    "silver": [
+      214,
+      209,
+      201
+    ],
+    "silver_dark": [
+      176,
+      170,
+      162
+    ],
+    "stripe": [
+      126,
+      120,
+      113
+    ],
+    "white": [
+      246,
+      242,
+      236
+    ],
+    "tail": [
+      122,
+      116,
+      110
+    ],
+    "pink_inner_ear": [
+      225,
+      172,
+      168
+    ],
+    "eye_dark": [
+      26,
+      21,
+      18
+    ],
+    "iris": [
+      150,
+      96,
+      34
+    ],
+    "highlight": [
+      255,
+      255,
+      255
+    ],
+    "nose_pink": [
+      206,
+      138,
+      134
+    ]
+  }
+}
