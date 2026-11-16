@@ -1,0 +1,4 @@
+import {readdir,lstat,readlink,realpath,access} from 'node:fs/promises';import path from 'node:path';
+const root=await realpath(process.argv[2]);let links=0;
+async function walk(dir){for(const name of await readdir(dir)){const p=path.join(dir,name),s=await lstat(p);if(s.isSymbolicLink()){const target=await readlink(p);if(path.isAbsolute(target))throw Error('Absolute framework link: '+p);const resolved=await realpath(p);if(!resolved.startsWith(root+path.sep))throw Error('External link: '+p);links++;}else if(s.isDirectory())await walk(p);}}
+await walk(root);for(const p of ['Contents/Resources/app/dist/app.js','Contents/Resources/app/src/core/store.cjs','Contents/Resources/app/src/desktop/main.cjs'])await access(path.join(root,p));console.log(JSON.stringify({result:'PASS',relativeInternalLinks:links}));

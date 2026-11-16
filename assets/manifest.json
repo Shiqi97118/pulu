@@ -1,0 +1,66 @@
+{
+  "status": "DESIGN_STUDY_NOT_APPROVED",
+  "bytes": 662548,
+  "triangles": 21096,
+  "meshCount": 68,
+  "materials": 11,
+  "animations": [
+    {
+      "name": "idle_observe",
+      "duration": 6,
+      "tracks": 1
+    },
+    {
+      "name": "walk_in_place",
+      "duration": 1.2000000476837158,
+      "tracks": 2
+    },
+    {
+      "name": "sleep_enter",
+      "duration": 2,
+      "tracks": 1
+    },
+    {
+      "name": "sleep_loop",
+      "duration": 6,
+      "tracks": 1
+    },
+    {
+      "name": "stretch_exit",
+      "duration": 3,
+      "tracks": 1
+    },
+    {
+      "name": "cursor_watch",
+      "duration": 4,
+      "tracks": 1
+    },
+    {
+      "name": "pet_react",
+      "duration": 1.5,
+      "tracks": 1
+    },
+    {
+      "name": "micro_groom",
+      "duration": 3,
+      "tracks": 2
+    },
+    {
+      "name": "micro_ear_tail",
+      "duration": 2,
+      "tracks": 1
+    },
+    {
+      "name": "intro_peek",
+      "duration": 3,
+      "tracks": 1
+    }
+  ],
+  "roundtrip": "PASS",
+  "limitations": [
+    "transform-node rig, no skinned skeleton",
+    "seated walk approximation, not final gait",
+    "material/draw-call budget still requires optimization",
+    "visual approval pending"
+  ]
+}
