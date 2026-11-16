@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "fetched_at": "2026-11-16T08:29:05.495777Z",
+  "fetched_at": "2026-11-16T08:43:10.260401Z",
   "plugins": [
     {
       "id": "plugin_connector_1p_95d39881713c8191931482a62d6edff9",
@@ -496766,7 +496766,7 @@
       "disabled_reason": null,
       "eligible_plan_types": null,
       "release": {
-        "version": "1.0.1",
+        "version": "1.0.2",
         "display_name": "RaceCharts",
         "description": "Create animated race charts",
         "bundle_download_url": null,
@@ -496797,8 +496797,8 @@
           "default_prompts": [
             "Compare $10,000 each in NVIDIA and Tesla since 2011, dividends reinvested. Create a portrait line chart. Preview before saving."
           ],
-          "composer_icon_url": "https://files.openai.com/content?id=file_000000002c1481f4a7bb46949c9774b8&cdn=1&cp=pi&ma=30326400&ts=0&p=pi&cid=8&sig=9a5a1d97fcfc28e6ac95e2f9fe03af669670c7df9b2ca6f00a2096ecd6e02ab6&v=0",
-          "logo_url": "https://files.openai.com/content?id=file_00000000e3488246acaddf04476f3684&cdn=1&cp=pi&ma=31708800&ts=0&p=pi&cid=8&sig=328ab21efa92435b252336bdad46dc3360f6680b9524854e544ac6d7ae95d91f&v=0",
+          "composer_icon_url": "https://files.openai.com/content?id=file_000000004624820a853ccd79300358b1&cdn=1&cp=pi&ma=31708800&ts=0&p=pi&cid=8&sig=3f00c36dd27a730a160b74d07bad562026761d562c6b8443ac6292d2a7d14d55&v=0",
+          "logo_url": "https://files.openai.com/content?id=file_00000000ce308210b6ad57dcabf60324&cdn=1&cp=pi&ma=32659200&ts=0&p=pi&cid=8&sig=28dd851c305c31418b9305acedf8b3b611fb46b46c9103a7fcc3d5cc7f732a50&v=0",
           "logo_url_dark": null,
           "screenshot_urls": []
         },
@@ -1023251,7 +1023251,7 @@
       "disabled_reason": null,
       "eligible_plan_types": null,
       "release": {
-        "version": "9.2.3",
+        "version": "9.2.14",
         "display_name": "Ploxs Presentations",
         "description": "Ploxs Presentations helps you create and edit Google Slides presentations from notes, outlines, and existing decks in chat.",
         "bundle_download_url": null,
@@ -1023293,8 +1023293,8 @@
             "Update this presentation for our next project meeting.",
             "Add a chart to slide 3 using this data."
           ],
-          "composer_icon_url": "https://files.openai.com/content?id=file_000000008a208208983009fe325db209&cdn=1&cp=pi&ma=30844800&ts=0&p=pi&cid=8&sig=55496d87bf4e73c1da9919e2969caa1c357f5a7542c94337f67dc41a30a52b64&v=0",
-          "logo_url": "https://files.openai.com/content?id=file_00000000c8f0820883026c8149e0ea6e&cdn=1&cp=pi&ma=30931200&ts=0&p=pi&cid=8&sig=6b278d66ff54bad6a18bf090e5d9f7b9d46d47a066ecc47d29efdce7de95f321&v=0",
+          "composer_icon_url": "https://files.openai.com/content?id=file_00000000a6148211ab4e34459549b6c4&cdn=1&cp=pi&ma=32313600&ts=0&p=pi&cid=8&sig=4a12cf40b4b32152b2471333c86e6cf97dced8902dd16c71942d02b1cc1e5a9c&v=0",
+          "logo_url": "https://files.openai.com/content?id=file_00000000baa88211b4427d0a971729b1&cdn=1&cp=pi&ma=30672000&ts=0&p=pi&cid=8&sig=cb43850900521f09cc8b1eea96c235981d2d6ba8e16fdc146b0d493f377b277d&v=0",
           "logo_url_dark": null,
           "screenshot_urls": []
         },

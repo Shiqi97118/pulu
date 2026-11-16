@@ -2,7 +2,7 @@
   "name": "pulu-desktop-spike",
   "version": "0.1.0",
   "private": true,
-  "description": "PULU M01 desktop feasibility spike; placeholder assets only",
+  "description": "PULU desktop companion · M01 preview",
   "type": "module",
   "main": "src/desktop/main.cjs",
   "scripts": {
@@ -10,13 +10,16 @@
     "start": "npm run build && env -u ELECTRON_RUN_AS_NODE electron .",
     "test": "node --test tests/*.test.js",
     "check": "npm test && npm run build",
-    "smoke": "npm run build && env -u ELECTRON_RUN_AS_NODE electron . --smoke"
+    "smoke": "npm run build && env -u ELECTRON_RUN_AS_NODE electron . --smoke",
+    "package:win": "npm run build && electron-packager ../stage PULU --platform=win32 --arch=x64 --out=artifacts --overwrite --asar --electron-version=45.3.2 --download.cacheRoot=.electron-cache"
   },
   "dependencies": {
     "three": "0.187.0"
   },
   "devDependencies": {
+    "@electron/packager": "^20.3.0",
     "electron": "45.3.2",
     "esbuild": "0.28.2"
-  }
+  },
+  "author": "PULU project"
 }
