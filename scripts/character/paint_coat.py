@@ -58,7 +58,7 @@ def main():
     front = np.cos(a)                  # 1 front, -1 back
     body = np.zeros_like(img)
     # white chest/belly wrapping round the front third, fading in above the paws
-    chest = smoothstep(0.42, 0.70, front) * smoothstep(0.08, 0.26, h) * (1 - smoothstep(0.88, 1.0, h))
+    chest = smoothstep(0.28, 0.60, front) * smoothstep(0.08, 0.26, h) * (1 - smoothstep(0.88, 1.0, h))
     body[:] = pal["silver"]
     body = mix(body, pal["white"], chest)
 
@@ -95,9 +95,9 @@ def main():
         * smoothstep(0.05, 0.30, hv) * 0.55
     head = mix(head, pal["white"], cheek)
     # forehead: fine irregular arcs running down into the neck
-    ftone = smoothstep(0.55, 0.78, hv) * smoothstep(-0.55, 0.15, np.cos(ha))
+    ftone = smoothstep(0.66, 0.86, hv) * smoothstep(-0.30, 0.35, np.cos(ha))
     arcs = smoothstep(0.50, 0.78, tri(ha * (10.0 / (2 * np.pi)) + 0.08 * np.sin(10 * ha)))
-    head = mix(head, pal["stripe"], 0.75 * arcs * ftone)
+    head = mix(head, pal["stripe"], 0.60 * arcs * ftone)
     # central "M" mark above the eyes
     central = (1 - smoothstep(0.12, 0.26, np.abs(ha))) * smoothstep(0.62, 0.74, hv) \
         * (1 - smoothstep(0.90, 0.98, hv))
@@ -153,7 +153,17 @@ def main():
     eye[hl2 < 0.10] = pal["highlight"] * 0.72
     img[m] = eye[m]
 
+    # fine directional streaks: reads as fur grain without any extra geometry
+    # soft mottling only: per-pixel noise aliases into sand when the atlas is
+    # minified to a 76 px pet, so the grain is deliberately low-frequency
+    rng2 = np.random.default_rng(7)
+    base_noise = rng2.random((size // 16, size // 16))
+    soft = np.array(Image.fromarray((base_noise * 255).astype(np.uint8)).resize((size, size), Image.BICUBIC), float) / 255.0
+    grain = 1.0 + 0.045 * (soft - 0.5)
+    img = img * grain[..., None]
+
     out = np.clip(img, 0, 255).astype(np.uint8)
+
     Image.fromarray(out[::-1]).save(args.out)   # flip: atlas v grows up
     print(f"wrote {args.out} ({size}x{size})")
 

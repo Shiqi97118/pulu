@@ -33,7 +33,7 @@ HW_HAUNCH = 0.350
 HW_NECK = 0.222
 HW_HEAD = 0.284
 EYE_DX = 0.088          # half distance between eye centres
-EYE_R = 0.055
+EYE_R = 0.058
 
 # depth (Y, +Y = facing direction), fraction of H
 Y_NOSE = 0.304
@@ -200,9 +200,51 @@ def atlas_material(name, atlas, rough=0.62):
     tex.image = atlas
     tex.interpolation = "Linear"
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    m.use_backface_culling = True      # glTF doubleSided=false
     m.diffuse_color = (0.8, 0.78, 0.75, 1)
     return m
+
+
+def shell_material(name, atlas, rough=0.75):
+    """Atlas colour + atlas-alpha fringe, alpha-clipped for the fur shells."""
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = rough
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = atlas
+    tex.interpolation = "Linear"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    if hasattr(m, "blend_method"):
+        m.blend_method = "CLIP"
+    if hasattr(m, "shadow_method"):
+        m.shadow_method = "CLIP"
+    if hasattr(m, "surface_render_method"):
+        m.surface_render_method = "DITHERED"
+    m.diffuse_color = (0.8, 0.78, 0.75, 1)
+    return m
+
+
+def build_shell(base, offset, ratio, name):
+    """Offset copy of the body along its normals, decimated to stay in budget."""
+    dup = base.copy()
+    dup.data = base.data.copy()
+    dup.name = name
+    bpy.context.collection.objects.link(dup)
+    bpy.context.view_layer.objects.active = dup
+    disp = dup.modifiers.new("grow", "DISPLACE")
+    disp.strength = offset
+    disp.mid_level = 0.0
+    disp.direction = "NORMAL"
+    bpy.ops.object.modifier_apply(modifier=disp.name)
+    if ratio < 1.0:
+        dec = dup.modifiers.new("cut", "DECIMATE")
+        dec.ratio = ratio
+        bpy.ops.object.modifier_apply(modifier=dec.name)
+    bpy.ops.object.shade_smooth()
+    return dup
 
 
 def mat(name, rgb, rough=0.6):
@@ -407,6 +449,11 @@ def build_toes(side, front=True):
 
 
 def build_tail():
+    """Thick tail dropping from the hip and curling forward on the right.
+
+    Rings are built perpendicular to the path; flat XY rings turn the tube into a
+    ribbon once the path runs horizontally.
+    """
     pts = [
         (0.150, -0.210, 0.330),
         (0.226, -0.322, 0.238),
@@ -414,9 +461,63 @@ def build_tail():
         (0.300, -0.330, 0.086),
         (0.316, -0.210, 0.066),
         (0.310, -0.080, 0.064),
-        (0.288,  0.010, 0.070),
+        (0.292,  0.004, 0.068),
+        (0.276,  0.040, 0.072),
     ]
-    radii = [0.066, 0.066, 0.064, 0.062, 0.060, 0.056, 0.050]
+    radii = [0.066, 0.066, 0.064, 0.062, 0.059, 0.052, 0.040, 0.014]
+    rings = []
+    for i, (cx, cy, cz) in enumerate(pts):
+        prev = pts[max(0, i - 1)]
+        nxt = pts[min(len(pts) - 1, i + 1)]
+        t = Vector((nxt[0] - prev[0], nxt[1] - prev[1], nxt[2] - prev[2]))
+        if t.length < 1e-6:
+            t = Vector((0, 1, 0))
+        t.normalize()
+        ref = Vector((0, 0, 1))
+        side = t.cross(ref)
+        if side.length < 1e-4:
+            side = Vector((1, 0, 0))
+        side.normalize()
+        up = side.cross(t).normalized()
+        r = radii[i]
+        ring = []
+        for j in range(16):
+            a = 2 * math.pi * j / 16
+            ring.append((cx + r * math.cos(a) * side.x + r * math.sin(a) * up.x,
+                         cy + r * math.cos(a) * side.y + r * math.sin(a) * up.y,
+                         cz + r * math.cos(a) * side.z + r * math.sin(a) * up.z))
+        rings.append(ring)
+    obj = loft("Tail", rings, cap_bottom=True, cap_top=True)
+    uv_loft(obj, "tail", 16, len(pts))
+    smooth(obj, 1)
+    return obj
+
+
+def build_toes(side, front=True):
+    s = side
+    if front:
+        x0, y0, z, r = 0.100 * s, 0.205, 0.030, 0.030
+    else:
+        x0, y0, z, r = 0.205 * s, 0.115, 0.028, 0.033
+    out = []
+    for k, dx in enumerate((-0.042, 0.0, 0.042)):
+        out.append(sphere(f"{'F' if front else 'H'}Toe{s}{k}", (x0 + dx, y0, z), r,
+                          (1.0, 1.15, 0.85), 16, 10))
+    return out
+
+
+def build_tail():
+    pts = [
+        (0.150, -0.210, 0.330),
+        (0.226, -0.322, 0.238),
+        (0.274, -0.372, 0.150),
+        (0.300, -0.330, 0.086),
+        (0.316, -0.210, 0.066),
+        (0.310, -0.080, 0.064),
+        (0.292,  0.004, 0.068),
+        (0.276,  0.040, 0.072),
+    ]
+    radii = [0.066, 0.066, 0.064, 0.062, 0.059, 0.052, 0.040, 0.014]
     rings = []
     for i, (cx, cy, cz) in enumerate(pts):
         r = radii[i]
@@ -481,6 +582,63 @@ def make_cameras():
     return cams
 
 
+def add_fluff(base, stride=5, length=0.011):
+    """Sprinkle short fur spikes over the coat mesh (same material, same UVs).
+
+    At 76 px this reads as a soft, irregular silhouette; two alpha shells did not,
+    because a hard alpha cut-off over a big offset just speckles the body.
+    """
+    me = base.data
+    me.calc_loop_triangles()
+    # vertex -> a representative UV
+    vuv = {}
+    uvl = me.uv_layers.active
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            vi = me.loops[li].vertex_index
+            if vi not in vuv:
+                vuv[vi] = tuple(uvl.data[li].uv)
+    verts, faces, uvs = [], [], []
+    rng = __import__("random")
+    rng.seed(20261116)
+    for vi, v in enumerate(me.vertices):
+        if vi % stride:
+            continue
+        if vi not in vuv:
+            continue
+        co = v.co
+        n = v.normal
+        # skip upward-facing head/back top? no: fluff everywhere reads better
+        jitter = (rng.uniform(-0.35, 0.35), rng.uniform(-0.35, 0.35))
+        base_i = len(verts)
+        side = 0.0035
+        verts.append((co.x - n.y * side, co.y + n.x * side, co.z))
+        verts.append((co.x + n.y * side, co.y - n.x * side, co.z))
+        ln = length * rng.uniform(0.55, 1.35)
+        verts.append((co.x + n.x * ln + jitter[0] * ln,
+                      co.y + n.y * ln + jitter[1] * ln,
+                      co.z + n.z * ln))
+        faces.append((base_i, base_i + 1, base_i + 2))
+        uv = vuv[vi]
+        uvs += [uv, uv, uv]
+    mesh = bpy.data.meshes.new("Fluff")
+    mesh.from_pydata(verts, [], faces)
+    mesh.validate()
+    fl = bpy.data.objects.new("Fluff", mesh)
+    bpy.context.collection.objects.link(fl)
+    layer = mesh.uv_layers.new(name="UVMap")
+    for i, uv in enumerate(uvs):
+        layer.data[i].uv = uv
+    fl.data.materials.append(base.data.materials[0])
+    bpy.ops.object.select_all(action="DESELECT")
+    fl.select_set(True)
+    base.select_set(True)
+    bpy.context.view_layer.objects.active = base
+    bpy.ops.object.join()
+    bpy.ops.object.shade_smooth()
+    return base
+
+
 def merge_by_material(parts):
     """One mesh per material so the GLB stays inside the draw-call budget."""
     groups = {}
@@ -524,6 +682,8 @@ def main():
         nose_mat = mat("nose", (0.72, 0.45, 0.42), 0.5)
     red = mat("red", (0.55, 0.05, 0.03), 0.35)
     brass = mat("brass", (0.55, 0.42, 0.18), 0.35)
+    for m in (red, brass):
+        m.use_backface_culling = True
 
     parts = []
 
@@ -566,8 +726,14 @@ def main():
     for obj, m in parts:
         obj.data.materials.append(m)
 
+    merge_by_material(parts)
+
+    if atlas_img and "--fluff" in argv:
+        fur_obj = next((o for o, m in parts if o.name == "PULU_fur"), None)
+        if fur_obj:
+            add_fluff(fur_obj, stride=9, length=0.007)
+
     if "--glb" in argv:
-        merge_by_material(parts)
         for obj, _ in parts:
             obj.select_set(True)
         bpy.ops.export_scene.gltf(
