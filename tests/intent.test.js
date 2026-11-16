@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {validateIntent,proposeWithTimeout} from '../src/core/intent.js';
+const now=Date.now(),p={intent:'rest',memoryEpoch:2,expiresAt:new Date(now+1000).toISOString()},ctx={epoch:2,now};
+test('intent whitelist and deletion epoch',()=>{assert.equal(validateIntent(p,ctx).accepted,true);assert.equal(validateIntent({...p,memoryEpoch:1},ctx).reason,'STALE_EPOCH');assert.equal(validateIntent({...p,script:'x'},ctx).reason,'FORBIDDEN');assert.equal(validateIntent({...p,intent:'shell'},ctx).reason,'FORBIDDEN');});
+test('expired intent and exhausted budgets fall back',()=>{assert.equal(validateIntent({...p,expiresAt:'bad'},ctx).reason,'EXPIRED');assert.equal(validateIntent(p,{...ctx,budget:0}).reason,'BUDGET');});
+test('adapter timeout and exception do not block local behavior',async()=>{assert.equal((await proposeWithTimeout(()=>new Promise(()=>{}),ctx,5)).reason,'TIMEOUT');assert.equal((await proposeWithTimeout(()=>{throw Error();},ctx)).reason,'UNAVAILABLE');});

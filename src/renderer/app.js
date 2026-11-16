@@ -1,53 +1,59 @@
-import * as THREE from 'three';
+import * as T from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import bytes from '../../assets/pulu-study.glb';
 import {Behavior} from '../core/behavior.js';
-const api=window.pulu;
-const panel=new URLSearchParams(location.search).has('panel');
-const labels={idle:'观察',walk:'探索',sleep:'休息',stretch:'伸懒腰',watch:'看鼠标',pet:'享受抚摸',micro:'小动作'};
-let flags={paused:false,hidden:false,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,locked:false};
+const api=window.pulu,panel=new URLSearchParams(location.search).has('panel');let flags={paused:false,hidden:false,reduced:false,lowPower:false,activity:'normal',dragging:false,locked:false},local;
+async function command(kind,payload){const result=await api.command(kind,payload);if(!result.ok)document.querySelector('#notice').textContent=result.error==='CONFLICT'?'资料刚刚更新，请再试一次。':'保存失败：'+result.error;return result;}
 if(panel){
- document.body.classList.add('panel');document.querySelector('#controls').hidden=false;
- for(const button of document.querySelectorAll('button'))button.addEventListener('click',()=>api.command(button.dataset.action));
- api.onState(s=>{document.querySelector('#status').textContent=`${s.hidden?'已隐藏':'可见'} · ${s.paused?'已暂停':'活动中'} · ${s.reduced?'减少动态':'正常动态'}`;});api.ready();
+ document.title='PULU · 控制面板';document.body.classList.add('panel');document.querySelector('#controls').hidden=false;
+ for(const button of document.querySelectorAll('[data-action]'))button.addEventListener('click',()=>command(button.dataset.action));
+ document.querySelector('#nameForm').addEventListener('submit',async e=>{e.preventDefault();if(local)await command('savePreference',{kind:'petName',value:document.querySelector('#petName').value,revision:local.revision});});
+ document.querySelector('#clear').addEventListener('click',()=>{document.querySelector('#confirmClear').hidden=false;document.querySelector('#cancelDelete').focus();});
+ document.querySelector('#cancelDelete').addEventListener('click',()=>{document.querySelector('#confirmClear').hidden=true;document.querySelector('#clear').focus();});
+ document.querySelector('#confirmDelete').addEventListener('click',async()=>{const r=await command('deleteMemory',{id:'all',revision:local.revision});if(r.ok){document.querySelector('#confirmClear').hidden=true;document.querySelector('#clear').focus();}});
+ api.onState(s=>{flags=s;local=s.local;
+  document.querySelector('#status').textContent=`${s.hidden?'已隐藏':'可见'} · ${s.paused?'已暂停':'活动中'} · ${s.reduced?'减少动态':'正常动态'}${s.lowPower?' · 低功耗':''}`;
+  document.querySelector('#notice').textContent=s.error||(local.recovered?'存档损坏：已恢复设置，记忆未从旧备份还原。':'');
+  for(const [kind,key] of [['pause','paused'],['reduce','reduced'],['lowPower','lowPower']])document.querySelector(`[data-action="${kind}"]`).setAttribute('aria-pressed',String(s[key]));
+  document.querySelector('[data-action="quiet"]').setAttribute('aria-pressed',String(s.activity==='low'));
+  const list=document.querySelector('#memories');list.replaceChildren();
+  for(const m of local.memories){const li=document.createElement('li'),text=document.createElement('span'),button=document.createElement('button');text.textContent=(m.kind==='petName'?'称呼：':'互动偏好：')+m.value;button.textContent='删除';button.setAttribute('aria-label','删除'+text.textContent);button.onclick=()=>command('deleteMemory',{id:m.id,revision:local.revision});li.append(text,button);list.append(li);}
+  document.querySelector('#summary').textContent='近14天摸摸：'+(local.summary||[]).reduce((a,d)=>a+d.pets,0)+' 次';
+ });api.ready();
 }else{
- const behavior=new Behavior();let renderer;
- try{
- renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(300,260);document.body.append(renderer.domElement);
- const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(35,300/260,.1,100);camera.position.set(0,1.4,6);camera.lookAt(0,.8,0);
- scene.add(new THREE.HemisphereLight(0xffffff,0x535d6d,3));const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(3,5,4);scene.add(light);
- const cat=new THREE.Group();scene.add(cat);const meshes=[];
- const gray=new THREE.MeshStandardMaterial({color:0xa7abb0,roughness:.9});const white=new THREE.MeshStandardMaterial({color:0xf3f1ea,roughness:.9});const dark=new THREE.MeshStandardMaterial({color:0x464b53,roughness:.9});const red=new THREE.MeshStandardMaterial({color:0xc8443e});
- function ball(parent,mat,x,y,z,sx,sy,sz){const m=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);meshes.push(m);return m;}
- ball(cat,gray,0,.65,0,.58,.62,.4);ball(cat,white,0,.57,.33,.4,.45,.15);
- const head=new THREE.Group();head.position.set(0,1.38,.12);cat.add(head);ball(head,gray,0,0,0,.66,.55,.43);ball(head,white,0,-.2,.34,.47,.26,.16);
- for(const x of [-.43,.43]){const ear=new THREE.Mesh(new THREE.ConeGeometry(.22,.45,3),gray);ear.position.set(x,.48,0);head.add(ear);meshes.push(ear);ball(head,dark,x*.65,.03,.41,.095,.12,.055);}
- ball(head,red,0,-.15,.51,.07,.045,.045);
- for(const x of [-.37,.37])ball(cat,white,x,.13,.3,.21,.16,.25);
- ball(cat,red,0,.98,.49,.12,.12,.1);
- for(let i=-1;i<=1;i++)ball(head,dark,i*.19,.3,.35,.045,.16,.045);
- const tail=ball(cat,gray,.66,.55,-.16,.15,.5,.15);tail.rotation.z=-.5;
- const raycaster=new THREE.Raycaster();const mouse=new THREE.Vector2();let cursor={x:150,y:130},pressed=null,drag=false,last=performance.now(),lastFrame=0,stopped=false;
- function stop(){stopped=true;renderer.setAnimationLoop(null);}
- function start(){if(stopped){stopped=false;last=performance.now();renderer.setAnimationLoop(frame);}}
+ const behavior=new Behavior();let renderer,mixer,model,current,active,pressed,drag=false,cursor={x:160,y:150},last=performance.now(),lastFrame=0,stopped=false,blinkTime=0;
+ const scene=new T.Scene(),camera=new T.PerspectiveCamera(33,320/300,.01,10);camera.position.set(.025,.19,.66);camera.lookAt(0,.145,0);
+ scene.add(new T.HemisphereLight(0xffffff,0x858c9c,2.2));const light=new T.DirectionalLight(0xfff4e8,2.7);light.position.set(-.5,.9,.8);scene.add(light);const fill=new T.DirectionalLight(0xe5ebff,.8);fill.position.set(.6,.4,-.6);scene.add(fill);
+ const raycaster=new T.Raycaster(),mouse=new T.Vector2();
+ const clipFor={idle:'idle_observe',walk:'walk_in_place',sleep:'sleep_loop',stretch:'stretch_exit',watch:'cursor_watch',pet:'pet_react',micro:'micro_groom'};
+ function feedback(){if(behavior.pet())api.interaction('pet');}
+ function stop(){stopped=true;renderer?.setAnimationLoop(null);}
+ function resume(){if(renderer&&model&&!flags.hidden&&!flags.locked){stopped=false;last=performance.now();renderer.setAnimationLoop(frame);}}
+ function fail(){stop();document.querySelector('#error').hidden=false;api.hit(false);}
  function frame(now){
-  const interval=(flags.paused||behavior.state==='sleep')?1000/15:1000/30;if(now-lastFrame<interval)return;const dt=(now-last)/1000;last=now;lastFrame=now;
-  behavior.setPaused(flags.paused);behavior.setReduced(flags.reduced||matchMedia('(prefers-reduced-motion: reduce)').matches);const state=behavior.tick(dt),t=behavior.time;
-  if(!flags.paused){
-  cat.position.x=state==='walk'&&!behavior.reduced?Math.sin(t)*.32:cat.position.x*.9;
-  cat.scale.y=state==='sleep'?.72:state==='stretch'?1.08:1;
-  head.rotation.y=Math.max(-.35,Math.min(.35,(cursor.x-150)/400));
-  head.rotation.z=state==='pet'?.12:0;tail.rotation.z=-.5+(flags.paused?0:Math.sin(t*2)*.08);
+  const fps=flags.lowPower||flags.paused||behavior.state==='sleep'?15:30;if(now-lastFrame<1000/fps)return;const dt=Math.min((now-last)/1000,.1);last=now;lastFrame=now;
+  behavior.setPaused(flags.paused||flags.dragging);behavior.setReduced(flags.reduced||flags.activity==='low'||matchMedia('(prefers-reduced-motion: reduce)').matches);const state=behavior.tick(dt),t=behavior.time;
+  if(state!==current){const next=mixer.clipAction(model.animations.find(c=>c.name===clipFor[state]));next.reset().setEffectiveWeight(1).play();if(active)next.crossFadeFrom(active,.25,false);active=next;current=state;}
+  if(!flags.paused&&!flags.dragging){mixer.update(dt);model.scene.rotation.y=Math.max(-.12,Math.min(.12,(cursor.x-160)/1400));model.scene.position.x=state==='walk'&&!behavior.reduced?Math.sin(t)*.018:0;model.scene.scale.y=1+Math.sin(t*1.6)*.005;
+   blinkTime+=dt;const blink=state==='sleep'?.08:state==='pet'?.35:Math.max(.1,Math.min(1,Math.abs((blinkTime%4.8)-4.55)*15));for(const name of ['EyeL','EyeR']){const eye=model.scene.getObjectByName(name);if(eye)eye.scale.y=blink;}
   }
   renderer.render(scene,camera);
  }
- api.onState(s=>{flags=s;if(s.hidden||s.locked)stop();else start();});
- api.onPointer(p=>{if(p.pet){behavior.pet();return;}cursor=p;if(flags.hidden||flags.locked)return;mouse.set(p.x/300*2-1,-p.y/260*2+1);raycaster.setFromCamera(mouse,camera);const hit=raycaster.intersectObjects(meshes,false).length>0;api.hit(hit);});
- const canvas=renderer.domElement;
- canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;pressed={x:e.clientX,y:e.clientY,time:performance.now()};canvas.setPointerCapture(e.pointerId);});
- canvas.addEventListener('pointermove',e=>{if(pressed&&!drag&&Math.hypot(e.clientX-pressed.x,e.clientY-pressed.y)>6){drag=true;api.drag(true);}});
- function release(e){if(pressed&&!drag&&performance.now()-pressed.time<350)behavior.pet();if(drag)api.drag(false);pressed=null;drag=false;}
- canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',()=>{if(drag)api.drag(false);pressed=null;drag=false;});
- canvas.addEventListener('contextmenu',e=>{e.preventDefault();api.command('controls');});
- canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();stop();document.querySelector('#error').hidden=false;api.hit(false);});
- renderer.setAnimationLoop(frame);api.ready();
- }catch(err){document.querySelector('#error').hidden=false;api.hit(false);console.error('PULU_RENDER_INIT_FAILED',err.message);}
+ async function initialize(){
+  if(renderer){renderer.dispose();renderer.domElement.remove();}document.querySelector('#error').hidden=true;
+  try{renderer=new T.WebGLRenderer({alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(320,300);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.append(renderer.domElement);
+   model=await new Promise((resolve,reject)=>new GLTFLoader().parse(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'',resolve,reject));scene.add(model.scene);mixer=new T.AnimationMixer(model.scene);current=null;active=null;
+   const canvas=renderer.domElement;
+   canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;pressed={x:e.clientX,y:e.clientY,time:performance.now()};canvas.setPointerCapture(e.pointerId);});
+   canvas.addEventListener('pointermove',e=>{if(pressed&&!drag&&Math.hypot(e.clientX-pressed.x,e.clientY-pressed.y)>6){drag=true;api.drag(true);}});
+   const cancel=()=>{if(drag)api.drag(false);pressed=null;drag=false;};
+   canvas.addEventListener('pointerup',()=>{if(pressed&&!drag&&performance.now()-pressed.time<350)feedback();cancel();});canvas.addEventListener('pointercancel',cancel);canvas.addEventListener('lostpointercapture',cancel);
+   canvas.addEventListener('contextmenu',e=>{e.preventDefault();api.command('controls');});canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();fail();});canvas.addEventListener('webglcontextrestored',()=>initialize());
+   resume();api.ready();
+  }catch{fail();}
+ }
+ api.onState(s=>{flags=s;if(s.hidden||s.locked)stop();else if(stopped)resume();});
+ api.onPointer(p=>{if(p.cancelDrag){drag=false;pressed=null;return;}if(p.pet){feedback();return;}cursor=p;if(!model||flags.hidden||flags.locked)return;mouse.set(p.x/320*2-1,-p.y/300*2+1);raycaster.setFromCamera(mouse,camera);api.hit(raycaster.intersectObject(model.scene,true).length>0);});
+ document.querySelector('#retry').onclick=()=>{if(model){scene.remove(model.scene);model.scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});model=null;}initialize();};
+ initialize();
 }
