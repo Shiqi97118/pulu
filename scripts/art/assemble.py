@@ -28,7 +28,7 @@ def main():
                     help="placeholder frames used when a clip is incomplete")
     args = ap.parse_args()
 
-    cfg = json.loads(Path(args.clips).read_text())
+    cfg = json.loads(Path(args.clips).read_text(encoding="utf-8"))
     src = Path(args.frames)
     out = Path(args.out)
     fallback = Path(args.fallback)
@@ -70,7 +70,7 @@ def main():
         }
         print(f"ASSEMBLE {name}: {expected} frames @ {clip['fps']}fps")
 
-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+    (out / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     total = sum(v["frames"] for v in summary.values())
     print(f"ASSEMBLED clips={len(summary)} frames={total}")
 

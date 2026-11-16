@@ -46,7 +46,7 @@ def main():
     ap.add_argument("--out", default=str(ART))
     args = ap.parse_args()
 
-    cfg = json.loads(Path(args.clips).read_text())
+    cfg = json.loads(Path(args.clips).read_text(encoding="utf-8"))
     identity = cfg["identity"]
     out_root = Path(args.out)
     only = set(args.only.split(",")) if args.only else None

@@ -27,7 +27,7 @@ def main():
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    summary = json.loads((frames_dir / "summary.json").read_text())
+    summary = json.loads((frames_dir / "summary.json").read_text(encoding="utf-8"))
     clips = []
     total = 0
 
@@ -65,7 +65,7 @@ def main():
         "generatedFrom": "placeholder 3D render (visual parity with the GLB)",
         "clips": clips,
     }
-    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"TOTAL {total/1024:.1f} KiB across {len(clips)} clips")
 
 

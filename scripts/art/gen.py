@@ -125,7 +125,7 @@ def main():
         return sorted((p for p in paths if p.stat().st_mtime >= started - 1),
                       key=lambda p: p.stat().st_mtime, reverse=True)
 
-    candidates = fresh((home / "generated_images").glob("**/*.png"))
+    candidates = fresh((CODEX_HOME / "generated_images").glob("**/*.png"))
     if not candidates:
         candidates = fresh((Path.home() / ".codex/generated_images").glob("**/*.png"))
 

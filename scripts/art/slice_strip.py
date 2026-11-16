@@ -104,7 +104,7 @@ def main():
 
     meta_path = out / "clip.json"
     meta = {"fps": args.fps, "loop": args.loop, "frames": len(cells)}
-    meta_path.write_text(json.dumps(meta, indent=2))
+    meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(f"SLICED {args.clip}: {len(cells)} frames -> {out}")
 
 
