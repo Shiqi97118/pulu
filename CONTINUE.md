@@ -122,6 +122,8 @@
 - `npm run check` 第一次跑出 **1 个失败**：`tests/sprite-assets.test.js` 仍断言旧的 10-clip 清单。
 - 顺着它查出一个真实缺陷：`src/renderer/app.js` 把 `micro` 状态映射到 `micro_groom`，而 14-clip 重打包后 manifest 里已没有该 clip（被 `micro_ear_tail` 取代）。`SpritePlayer.play()` 对未知 clip **静默 `return false`**，所以 micro 状态一直什么都没播，界面上看不出来。已改映射；守卫测试更新到 14 个 clip。
 - 现在：**18/18 测试通过，构建成功**。
+- 实机验证：`electron . --smoke` 打印 `PULU_SMOKE_READY`；`--shot` 抓到窗口实拍 120×140（96×112 窗口 @125% DPI），画面是 AI 待机帧、角色与铃铛正常。仓库内测试之外的三维/动效/性能仍未验。
+- 环境坑：Electron 二进制用 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` 才装得上，直连 GitHub Releases 会被中断。
 - 遗留未处理：`assets/sprites/micro_groom.webp` 已成孤儿（manifest 不引用）；`play()` 静默失败没有告警，调用方也没检查返回值。
 
 **仓库**
